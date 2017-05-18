@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.0.2
+// @version     0.0.3
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -29,18 +29,18 @@ GM_addStyle([
   '.threads .post{counter-increment:p}',
   '.post-op,.post-deleted,.post-popup>.post{counter-increment:p 0!important}',
   '.threads .post-id:after{content:"("counter(p)")";color:#16a085}',
-  '.threads .post-op .post-id:after{content:"OP";color:#CD5C5C}',
-  '.threads .post-deleted .post-id:after{content:"deleted";color:#CD5C5C}',
+  '.threads .post-op .post-id:after{content:"OP";color:#cd5c5c}',
+  '.threads .post-deleted .post-id:after{content:"deleted";color:#cd5c5c}',
   '.post-popup>.post .post-id:after{content:""}',
-  '.threads .post-op .fa-arrow-up:after{content:"";background:transparent;z-index:1001;padding:19px 6px;box-shadow:#CD5C5C -12px 0 12px -12px inset;cursor:help;position:fixed;right:0;bottom:0}',
+  '.threads .post-op .fa-arrow-up:after{content:"";z-index:1001;box-shadow:#cd5c5c -15px 0 15px -10px inset;cursor:help;position:fixed;right:0;bottom:0;width:20px;height:40px}',
 
   '.cute{z-index:1000;background:#d9d9d9;border-top:1px solid #ccc;border-left:1px solid #ccc;padding:10px 15px;position:fixed;right:0;bottom:0}',
-  '.cute-nposts{padding-right:8px;border-right:2px solid #999}',
+  '.cute-nposts{padding-right:10px;border-right:2px solid #bbb}',
   '.cute-nposts:after{content:counter(p);display:inline-block;width:35px;text-align:right}',
-  '.cute-update{padding-left:8px}',
+  '.cute-update{padding-left:10px}',
   '.cute-nsecs{display:inline-block;width:35px;text-align:right}',
-  '.cute i{color:#333}',
-].join(""))
+  '.cute-icon{color:#333}',
+].join(""));
 
 const UPDATE_SECS = 15;
 const LOAD_BYTES1 = 100 * 1024;
@@ -120,12 +120,12 @@ var Counter = (function() {
   var nposts = document.createElement("span");
   nposts.className = "cute-nposts";
   var iconPost = document.createElement("i");
-  iconPost.className = "fa fa-comments";
+  iconPost.className = "cute-icon fa fa-comments";
 
   var btnUpd = document.createElement("span");
   btnUpd.className = "cute-update";
   var iconUpd = document.createElement("i");
-  iconUpd.className = "fa fa-refresh";
+  iconUpd.className = "cute-icon fa fa-refresh";
   var nsecs = document.createElement("span");
   nsecs.className = "cute-nsecs";
 
