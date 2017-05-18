@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.0.5
+// @version     0.0.6
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -32,10 +32,6 @@ GM_addStyle([
   '.threads .post-op .post-id:after{content:"OP";color:#cd5c5c}',
   '.threads .post-deleted .post-id:after{content:"deleted";color:#cd5c5c}',
   '.post-popup>.post .post-id:after{content:""}',
-  '.threads .post-op .fa-arrow-up:after{',
-    'content:"";z-index:1001;box-shadow:#cd5c5c -15px 0 15px -10px inset;',
-    'cursor:help;position:fixed;right:0;bottom:0;width:20px;height:40px}',
-
   '.cute{',
     'z-index:1000;background:#d9d9d9;border-top:1px solid #ccc;',
     'border-left:1px solid #ccc;padding:10px 15px;position:fixed;',
@@ -81,7 +77,6 @@ const ALLOWED_LINKS = ALLOWED_HOSTS.map(function(host) {
 });
 
 var updateBtn = null;
-var inThread = false;
 var tid = null;
 var secs = 0;
 var unread = 0;
@@ -660,13 +655,13 @@ function handleThread(container) {
           handlePost(node);
         } else if (node.parentNode.classList.contains("thread-tree")) {
           handlePost(node);
-          if (hiddenThreadTab()) {
+          if (document.hidden) {
             unread += 1;
             Favicon.set(unread);
           }
         } else if (node.classList.contains("thread-tree")) {
           handlePosts(node);
-          if (hiddenThreadTab()) {
+          if (document.hidden) {
             unread += node.querySelectorAll(".post").length;
             Favicon.set(unread);
           }
@@ -721,11 +716,8 @@ function handleNavigation() {
   var container = document.querySelector("#content");
   clearUpdater();
   updateBtn = null;
-  inThread = false;
-
   if (singleThread) {
     updateBtn = singleThread.querySelector(":scope > .btn-group > .btn-default");
-    inThread = true;
     handleThread(singleThread);
     initUpdater(singleThread);
     disableScrollToPost();
@@ -764,10 +756,6 @@ function handleApp(container) {
   observer.observe(container, {childList: true});
 }
 
-function hiddenThreadTab() {
-  return inThread && document.hidden;
-}
-
 function update() {
   if (secs <= 1) {
     secs = UPDATE_SECS;
@@ -784,7 +772,7 @@ function update() {
 }
 
 function initUpdater(container) {
-  if (inThread && tid == null) {
+  if (tid == null) {
     secs = UPDATE_SECS;
     Counter.set(secs);
     Counter.embed(container);
