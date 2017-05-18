@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.0.3
+// @version     0.0.4
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -766,7 +766,9 @@ function hiddenThreadTab() {
 function update() {
   if (secs <= 1) {
     secs = UPDATE_SECS;
-    updateBtn.click();
+    if (!updateBtn.querySelector(".fa-spin")) {
+      updateBtn.click();
+    }
   } else {
     secs -= 1;
   }
