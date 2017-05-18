@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.0.1
+// @version     0.0.2
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -32,11 +32,17 @@ GM_addStyle([
   '.threads .post-op .post-id:after{content:"OP";color:#CD5C5C}',
   '.threads .post-deleted .post-id:after{content:"deleted";color:#CD5C5C}',
   '.post-popup>.post .post-id:after{content:""}',
-  '.threads:after{content:counter(p);z-index:10000000;background:#d9d9d9;border-top:#ccc 1px solid;border-left:#ccc 1px solid;line-height:38px;padding:0 12px;position:fixed;right:0;bottom:0}',
-  '.threads .post-op .fa-arrow-up:after{content:"";background:transparent;z-index:10000001;padding:19px 6px;box-shadow:#CD5C5C -12px 0 12px -12px inset;cursor:help;position:fixed;right:0;bottom:0}',
+  '.threads .post-op .fa-arrow-up:after{content:"";background:transparent;z-index:1001;padding:19px 6px;box-shadow:#CD5C5C -12px 0 12px -12px inset;cursor:help;position:fixed;right:0;bottom:0}',
+
+  '.cute{z-index:1000;background:#d9d9d9;border-top:1px solid #ccc;border-left:1px solid #ccc;padding:10px 15px;position:fixed;right:0;bottom:0}',
+  '.cute-nposts{padding-right:8px;border-right:2px solid #999}',
+  '.cute-nposts:after{content:counter(p);display:inline-block;width:35px;text-align:right}',
+  '.cute-update{padding-left:8px}',
+  '.cute-nsecs{display:inline-block;width:35px;text-align:right}',
+  '.cute i{color:#333}',
 ].join(""))
 
-const UPDATE_INTERVAL = 15 * 1000;
+const UPDATE_SECS = 15;
 const LOAD_BYTES1 = 100 * 1024;
 const LOAD_BYTES2 = 600 * 1024;
 const THUMB_SIZE = 200;
@@ -71,6 +77,7 @@ const ALLOWED_LINKS = ALLOWED_HOSTS.map(function(host) {
 var updateBtn = null;
 var inThread = false;
 var tid = null;
+var secs = 0;
 var unread = 0;
 
 var Favicon = (function() {
@@ -102,6 +109,38 @@ var Favicon = (function() {
     },
     reset: function() {
       link.href = origURL;
+    },
+  };
+})();
+
+var Counter = (function() {
+  var div = document.createElement("div");
+  div.className = "cute";
+
+  var nposts = document.createElement("span");
+  nposts.className = "cute-nposts";
+  var iconPost = document.createElement("i");
+  iconPost.className = "fa fa-comments";
+
+  var btnUpd = document.createElement("span");
+  btnUpd.className = "cute-update";
+  var iconUpd = document.createElement("i");
+  iconUpd.className = "fa fa-refresh";
+  var nsecs = document.createElement("span");
+  nsecs.className = "cute-nsecs";
+
+  nposts.appendChild(iconPost);
+  div.appendChild(nposts);
+  btnUpd.appendChild(iconUpd);
+  btnUpd.appendChild(nsecs);
+  div.appendChild(btnUpd);
+
+  return {
+    embed: function(node) {
+      node.appendChild(div);
+    },
+    set: function(n) {
+      nsecs.textContent = n;
     },
   };
 })();
@@ -656,6 +695,20 @@ function handleThreads(container) {
   embedUpload(document.querySelector(".reply-form"));
 }
 
+function disabledScroll() {}
+
+function disableScrollToPost() {
+  try {
+    // Someone please kill me.
+    var threadObj = unsafeWindow.app.$children[0].$children[5].$children[0];
+    threadObj.scrollToPost = typeof exportFunction === "undefined"
+      ? disabledScroll
+      : exportFunction(disabledScroll, unsafeWindow);
+  } catch (e) {
+    /* skip */
+  }
+}
+
 function handleNavigation() {
   var singleThread = document.querySelector(".threads");
   var firstThread = document.querySelector(".thread");
@@ -668,7 +721,8 @@ function handleNavigation() {
     updateBtn = singleThread.querySelector(":scope > .btn-group > .btn-default");
     inThread = true;
     handleThread(singleThread);
-    initUpdater();
+    initUpdater(singleThread);
+    disableScrollToPost();
   } else if (firstThread) {
     handleThreads(firstThread.parentNode.parentNode);
   } else if (container && !container.children.length) {
@@ -683,22 +737,24 @@ function handleNavigation() {
   }
 }
 
-unsafeWindow._cuteHandler = typeof exportFunction === "undefined"
-  ? handleNavigation
-  : exportFunction(handleNavigation, unsafeWindow);
+function getNavHandler() {
+  return typeof exportFunction === "undefined"
+    ? handleNavigation
+    : exportFunction(handleNavigation, unsafeWindow);
+}
 
 function handleApp(container) {
   // NOTE: `unsafeWindow.app.$bus` reference doesn't work in some UA.
   var app = unsafeWindow.app;
   if (app && app.$bus) {
-    app.$bus.on("refreshContentDone", unsafeWindow._cuteHandler);
+    app.$bus.on("refreshContentDone", getNavHandler());
     return;
   }
   var observer = new MutationObserver(function() {
     var app = unsafeWindow.app;
     if (!app || !app.$bus) return;
     observer.disconnect();
-    app.$bus.on("refreshContentDone", unsafeWindow._cuteHandler);
+    app.$bus.on("refreshContentDone", getNavHandler());
   });
   observer.observe(container, {childList: true});
 }
@@ -708,13 +764,24 @@ function hiddenThreadTab() {
 }
 
 function update() {
-  updateBtn.click();
-  tid = setTimeout(update, UPDATE_INTERVAL);
+  if (secs <= 1) {
+    secs = UPDATE_SECS;
+    updateBtn.click();
+  } else {
+    secs -= 1;
+  }
+  if (!document.hidden) {
+    Counter.set(secs);
+  }
+  tid = setTimeout(update, 1000);
 }
 
-function initUpdater() {
-  if (inThread && document.hidden && tid == null) {
-    tid = setTimeout(update, UPDATE_INTERVAL);
+function initUpdater(container) {
+  if (inThread && tid == null) {
+    secs = UPDATE_SECS;
+    Counter.set(secs);
+    Counter.embed(container);
+    tid = setTimeout(update, 1000);
   }
 }
 
@@ -728,10 +795,9 @@ function clearUpdater() {
 }
 
 function handleVisibility() {
-  if (document.hidden) {
-    initUpdater();
-  } else {
-    clearUpdater();
+  if (!document.hidden) {
+    unread = 0;
+    Favicon.reset();
   }
 }
 
