@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.0.4
+// @version     0.0.5
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -32,11 +32,17 @@ GM_addStyle([
   '.threads .post-op .post-id:after{content:"OP";color:#cd5c5c}',
   '.threads .post-deleted .post-id:after{content:"deleted";color:#cd5c5c}',
   '.post-popup>.post .post-id:after{content:""}',
-  '.threads .post-op .fa-arrow-up:after{content:"";z-index:1001;box-shadow:#cd5c5c -15px 0 15px -10px inset;cursor:help;position:fixed;right:0;bottom:0;width:20px;height:40px}',
+  '.threads .post-op .fa-arrow-up:after{',
+    'content:"";z-index:1001;box-shadow:#cd5c5c -15px 0 15px -10px inset;',
+    'cursor:help;position:fixed;right:0;bottom:0;width:20px;height:40px}',
 
-  '.cute{z-index:1000;background:#d9d9d9;border-top:1px solid #ccc;border-left:1px solid #ccc;padding:10px 15px;position:fixed;right:0;bottom:0}',
+  '.cute{',
+    'z-index:1000;background:#d9d9d9;border-top:1px solid #ccc;',
+    'border-left:1px solid #ccc;padding:10px 15px;position:fixed;',
+    'right:0;bottom:0}',
   '.cute-nposts{padding-right:10px;border-right:2px solid #bbb}',
-  '.cute-nposts:after{content:counter(p);display:inline-block;width:35px;text-align:right}',
+  '.cute-nposts:after{',
+    'content:counter(p);display:inline-block;width:35px;text-align:right}',
   '.cute-update{padding-left:10px}',
   '.cute-nsecs{display:inline-block;width:35px;text-align:right}',
   '.cute-icon{color:#333}',
@@ -744,7 +750,6 @@ function getNavHandler() {
 }
 
 function handleApp(container) {
-  // NOTE: `unsafeWindow.app.$bus` reference doesn't work in some UA.
   var app = unsafeWindow.app;
   if (app && app.$bus) {
     app.$bus.on("refreshContentDone", getNavHandler());
