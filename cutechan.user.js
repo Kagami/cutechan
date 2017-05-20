@@ -24,32 +24,37 @@
 // @connect     4chan.org
 // ==/UserScript==
 
+"use strict";
+
 GM_addStyle([
-  '.threads{counter-reset:p}',
-  '.threads .post{counter-increment:p}',
-  '.post-op,.post-deleted,.post-popup>.post{counter-increment:p 0!important}',
+  ".threads{counter-reset:p}",
+  ".threads .post{counter-increment:p}",
+  ".post-op,.post-deleted,.post-popup>.post{counter-increment:p 0!important}",
   '.threads .post-id:after{content:"("counter(p)")";color:#16a085}',
   '.threads .post-op .post-id:after{content:"OP";color:#cd5c5c}',
   '.threads .post-deleted .post-id:after{content:"deleted";color:#cd5c5c}',
   '.post-popup>.post .post-id:after{content:""}',
-  '.cute{',
-    'z-index:1000;background:#d9d9d9;border-top:1px solid #ccc;',
-    'border-left:1px solid #ccc;padding:10px 15px;position:fixed;',
-    'right:0;bottom:0}',
-  '.cute-nposts{padding-right:10px;border-right:2px solid #bbb}',
-  '.cute-nposts:after{',
-    'content:counter(p);display:inline-block;width:35px;text-align:right}',
-  '.cute-update{padding-left:10px}',
-  '.cute-nsecs{display:inline-block;width:35px;text-align:right}',
-  '.cute-icon{color:#333}',
+
+  ".cute{",
+  "  z-index:1000;background:#d9d9d9;border-top:1px solid #ccc;",
+  "  border-left:1px solid #ccc;padding:10px 15px;position:fixed;",
+  "  right:0;bottom:0",
+  "}",
+  ".cute-nposts{padding-right:10px;border-right:2px solid #bbb}",
+  ".cute-nposts:after{",
+  "  content:counter(p);display:inline-block;width:35px;text-align:right",
+  "}",
+  ".cute-update{padding-left:10px}",
+  ".cute-nsecs{display:inline-block;width:35px;text-align:right}",
+  ".cute-icon{color:#333}",
 ].join(""));
 
-const UPDATE_SECS = 15;
-const LOAD_BYTES1 = 100 * 1024;
-const LOAD_BYTES2 = 600 * 1024;
-const THUMB_SIZE = 200;
-const THUMB_VERSION = 2;
-const UPLOAD_HOSTS = [
+var UPDATE_SECS = 15;
+var LOAD_BYTES1 = 100 * 1024;
+var LOAD_BYTES2 = 600 * 1024;
+var THUMB_SIZE = 200;
+var THUMB_VERSION = 2;
+var UPLOAD_HOSTS = [
   {host: "safe.moe", maxSizeMB: 200, api: "loli-safe"},
   {host: "pomf.space", maxSizeMB: 256, api: "pomf"},
   {host: "doko.moe", maxSizeMB: 2048, api: "pomf"},
@@ -58,7 +63,7 @@ const UPLOAD_HOSTS = [
   {host: "mixtape.moe", maxSizeMB: 100, api: "pomf"},
   {host: "lewd.es", maxSizeMB: 500, api: "pomf"},
 ];
-const ALLOWED_HOSTS = [
+var ALLOWED_HOSTS = [
   "a.safe.moe",
   "a.pomf.space",
   "a.doko.moe",
@@ -71,7 +76,7 @@ const ALLOWED_HOSTS = [
   "brchan.org",
   "[a-z0-9]+.4chan.org",
 ];
-const ALLOWED_LINKS = ALLOWED_HOSTS.map(function(host) {
+var ALLOWED_LINKS = ALLOWED_HOSTS.map(function(host) {
   host = host.replace(/\./g, "\\.");
   return new RegExp("^https://" + host + "/.+\\.(webm|mp4)$");
 });
@@ -183,7 +188,8 @@ function getMatroskaTitle(data) {
         title += String.fromCharCode(data[i++]);
       }
       return decodeURIComponent(escape(title));  // UTF-8 decoding
-    } else if (element !== 0x8538067 && element !== 0x549A966) {  // Segment, Info
+    } else if (element !== 0x8538067 &&  // Segment
+               element !== 0x549A966) {  // Info
       i += size;
     }
   }
@@ -230,7 +236,7 @@ function clearThumbCache() {
 function setCacheItem(name, value) {
   try {
     localStorage.setItem(name, value);
-  } catch(e) {
+  } catch (e) {
     if (e.name !== "QuotaExceededError" &&
         e.name !== "NS_ERROR_DOM_QUOTA_REACHED") {
       throw e;
@@ -249,7 +255,7 @@ function getMetadataFromCache(url) {
   try {
     if (!meta) throw new Error();
     return JSON.parse(meta);
-  } catch(e) {
+  } catch (e) {
     return {size: 0, width: 0, height: 0, duration: 0, title: ""};
   }
 }
@@ -266,7 +272,7 @@ function loadVideoData(url, limit) {
       method: "GET",
       responseType: "arraybuffer",
       headers: {
-        Range: "bytes=0-" + (limit-1),
+        Range: "bytes=0-" + (limit - 1),
       },
       onload: function(res) {
         if (res.status >= 200 && res.status < 400) {
@@ -279,29 +285,6 @@ function loadVideoData(url, limit) {
       },
       onerror: reject,
     });
-  });
-}
-
-function loadVideo(url, videoData) {
-  return new Promise(function(resolve, reject) {
-    var type = url.endsWith(".mp4") ? "video/mp4" : "video/webm";
-    var blob = new Blob([videoData], {type: type});
-    var blobURL = URL.createObjectURL(blob);
-    var vid = document.createElement("video");
-    vid.muted = true;
-    vid.addEventListener("loadeddata", function() {
-      if ((vid.mozDecodedFrames == null || vid.mozDecodedFrames > 0) &&
-          (vid.webkitDecodedFrameCount == null || vid.webkitDecodedFrameCount > 0)) {
-        setVideoMeta(url, vid, videoData);
-        resolve(vid);
-      } else {
-        reject(new Error("partial data"))
-      }
-    });
-    vid.addEventListener("error", function() {
-      reject(new Error("can't load"));
-    });
-    vid.src = blobURL;
   });
 }
 
@@ -318,8 +301,34 @@ function setVideoMeta(url, vid, videoData) {
   });
 }
 
-function makeScreenshot(vid) {
+function loadVideo(url, videoData) {
   return new Promise(function(resolve, reject) {
+    var type = url.endsWith(".mp4") ? "video/mp4" : "video/webm";
+    var blob = new Blob([videoData], {type: type});
+    var blobURL = URL.createObjectURL(blob);
+    var vid = document.createElement("video");
+    vid.muted = true;
+    vid.addEventListener("loadeddata", function() {
+      if ((vid.mozDecodedFrames == null ||
+           vid.mozDecodedFrames > 0)
+          &&
+          (vid.webkitDecodedFrameCount == null ||
+           vid.webkitDecodedFrameCount > 0)) {
+        setVideoMeta(url, vid, videoData);
+        resolve(vid);
+      } else {
+        reject(new Error("partial data"));
+      }
+    });
+    vid.addEventListener("error", function() {
+      reject(new Error("can't load"));
+    });
+    vid.src = blobURL;
+  });
+}
+
+function makeScreenshot(vid) {
+  return new Promise(function(resolve/*, reject*/) {
     var c = document.createElement("canvas");
     var ctx = c.getContext("2d");
     c.width = vid.videoWidth;
@@ -330,7 +339,7 @@ function makeScreenshot(vid) {
 }
 
 function makeThumbnail(src) {
-  return new Promise(function(resolve, reject) {
+  return new Promise(function(resolve/*, reject*/) {
     var dst = document.createElement("canvas");
     if (src.width > src.height) {
       dst.width = THUMB_SIZE;
@@ -359,6 +368,8 @@ function createVideoElement(post, link, thumb) {
   var bodyMsgHeight = bodyMsg.style.maxHeight;
   var attachments = post.querySelector(".post-inline-attachment");
   var attachHeight = attachments && attachments.style.maxHeight;
+  var vid = null;
+  var a = null;
 
   var container = document.createElement("div");
   container.className = "post-img";
@@ -423,7 +434,7 @@ function createVideoElement(post, link, thumb) {
     vid.load();
   };
 
-  var a = document.createElement("a");
+  a = document.createElement("a");
   a.style.display = "block";
   a.style.outline = "none";
   a.title = meta.title;
@@ -436,7 +447,7 @@ function createVideoElement(post, link, thumb) {
     expand();
   });
 
-  var vid = document.createElement("video");
+  vid = document.createElement("video");
   vid.style.display = "block";
   vid.style.maxWidth = "100%";
   vid.style.maxHeight = "960px";
@@ -489,7 +500,7 @@ function embedVideo(post, link) {
       .then(makeThumbnail);
   };
   var part2 = function(thumb) {
-    return new Promise(function(resolve, reject) {
+    return new Promise(function(resolve/*, reject*/) {
       var div = createVideoElement(post, link, thumb);
       link.parentNode.replaceChild(div, link);
       if (!cachedThumb) {
@@ -499,8 +510,10 @@ function embedVideo(post, link) {
     });
   };
   var partErr = function(e) {
+    /* eslint-disable no-console */
     console.error("[0chan-webm] Failed to embed " + link.href +
                   " : " + e.message);
+    /* eslint-enable no-console */
   };
 
   if (cachedThumb && hasMeta) {
@@ -573,6 +586,7 @@ function upload(host, files) {
 }
 
 function embedUpload(container) {
+  var input = null;
   var textarea = container.querySelector("textarea");
   var addText = function(text) {
     textarea.value = textarea.value ? (text + "\n" + textarea.value) : text;
@@ -609,7 +623,7 @@ function embedUpload(container) {
     menu.appendChild(item);
   });
 
-  var input = document.createElement("input");
+  input = document.createElement("input");
   input.style.display = "none";
   input.setAttribute("name", "files");
   input.setAttribute("type", "file");
@@ -696,6 +710,39 @@ function handleThreads(container) {
   embedUpload(document.querySelector(".reply-form"));
 }
 
+function update() {
+  if (secs <= 1) {
+    secs = UPDATE_SECS;
+    if (!updateBtn.querySelector(".fa-spin")) {
+      updateBtn.click();
+    }
+  } else {
+    secs -= 1;
+  }
+  if (!document.hidden) {
+    Counter.set(secs);
+  }
+  tid = setTimeout(update, 1000);
+}
+
+function initUpdater(container) {
+  if (tid == null) {
+    secs = UPDATE_SECS;
+    Counter.set(secs);
+    Counter.embed(container);
+    tid = setTimeout(update, 1000);
+  }
+}
+
+function clearUpdater() {
+  if (tid != null) {
+    clearTimeout(tid);
+    tid = null;
+    unread = 0;
+    Favicon.reset();
+  }
+}
+
 function disabledScroll() {}
 
 function disableScrollToPost() {
@@ -717,7 +764,7 @@ function handleNavigation() {
   clearUpdater();
   updateBtn = null;
   if (singleThread) {
-    updateBtn = singleThread.querySelector(":scope > .btn-group > .btn-default");
+    updateBtn = singleThread.querySelector(":scope > .btn-group .btn-default");
     handleThread(singleThread);
     initUpdater(singleThread);
     disableScrollToPost();
@@ -754,39 +801,6 @@ function handleApp(container) {
     app.$bus.on("refreshContentDone", getNavHandler());
   });
   observer.observe(container, {childList: true});
-}
-
-function update() {
-  if (secs <= 1) {
-    secs = UPDATE_SECS;
-    if (!updateBtn.querySelector(".fa-spin")) {
-      updateBtn.click();
-    }
-  } else {
-    secs -= 1;
-  }
-  if (!document.hidden) {
-    Counter.set(secs);
-  }
-  tid = setTimeout(update, 1000);
-}
-
-function initUpdater(container) {
-  if (tid == null) {
-    secs = UPDATE_SECS;
-    Counter.set(secs);
-    Counter.embed(container);
-    tid = setTimeout(update, 1000);
-  }
-}
-
-function clearUpdater() {
-  if (tid != null) {
-    clearTimeout(tid);
-    tid = null;
-    unread = 0;
-    Favicon.reset();
-  }
 }
 
 function handleVisibility() {
