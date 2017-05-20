@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.0.6
+// @version     0.0.7
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -219,11 +219,12 @@ function hqDownsampleInPlace(src, dst) {
   return src;
 }
 
+function pad2(n) {
+  n |= 0;
+  return (n < 10 ? "0" : "") + n;
+}
+
 function showTime(duration) {
-  var pad2 = function(n) {
-    n |= 0;
-    return (n < 10 ? "0" : "") + n;
-  };
   return pad2(duration / 60) + ":" + pad2(duration % 60);
 }
 
@@ -578,7 +579,7 @@ function upload(host, files) {
     form.append("files[]", file);
   });
   return uploadXHR(host, form).then(function(res) {
-    if (res.status >= 400) throw new Error(res.status);
+    if (res.status >= 400) throw new Error("HTTP " + res.status);
     var info = JSON.parse(res.responseText);
     if (!info.success) throw new Error(info.description.code);
     return info.files.map(getFileURL.bind(null, host));
@@ -636,8 +637,9 @@ function embedUpload(container) {
     upload(selectedHost, input.files).then(function(urls) {
       addText(urls.join(" "));
     }, function(e) {
-      // TODO: Use notifications.
-      addText("upload failed: " + e.message);
+      var app = unsafeWindow.app;
+      var msg = e.message || "network error";
+      app.$bus.emit("alertError", "Upload failed\n\n" + msg);
     }).then(function() {
       button.disabled = false;
       icon.classList.remove("fa-spinner", "fa-spin", "fa-fw");
