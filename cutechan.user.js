@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.0.7
+// @version     0.0.8
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -85,6 +85,7 @@ var updateBtn = null;
 var tid = null;
 var secs = 0;
 var unread = 0;
+var lastSel = null;
 
 var Favicon = (function() {
   var c = document.createElement("canvas");
@@ -586,6 +587,39 @@ function upload(host, files) {
   });
 }
 
+function quoteText(text) {
+  return text.trim().split(/\n/).map(function(line) {
+    return ">" + line;
+  }).join("\n") + "\n";
+}
+
+function quoteSelected(form, textarea) {
+  if (lastSel && !lastSel.isCollapsed) {
+    var post = form.parentNode.previousElementSibling;
+    if (post && post.classList.contains("post") &&
+        post.contains(lastSel.focusNode)) {
+      textarea.value = quoteText(lastSel.toString());
+    }
+  }
+  lastSel = null;
+}
+
+function handleReply(e) {
+  var node = e.target.parentElement;
+  if (node && node.classList.contains("post-button-reply")) {
+    // Selection object is a singleton so need to clone.
+    var sel = window.getSelection();
+    var selText = sel.toString();
+    lastSel = {
+      isCollapsed: sel.isCollapsed,
+      focusNode: sel.focusNode,
+      toString: function() {
+        return selText;
+      },
+    };
+  }
+}
+
 function embedUpload(container) {
   var input = null;
   var textarea = container.querySelector("textarea");
@@ -656,6 +690,8 @@ function embedUpload(container) {
   dropdown.appendChild(menu);
   buttons.parentNode.appendChild(input);
   buttons.appendChild(dropdown);
+
+  quoteSelected(container, textarea);
 }
 
 function handlePosts(container) {
@@ -813,4 +849,5 @@ function handleVisibility() {
 }
 
 handleApp(document.body);
+window.addEventListener("mousedown", handleReply);
 document.addEventListener("visibilitychange", handleVisibility);
