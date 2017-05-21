@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.0.8
+// @version     0.1.0
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -588,7 +588,9 @@ function upload(host, files) {
 }
 
 function quoteText(text) {
-  return text.trim().split(/\n/).map(function(line) {
+  return text.trim().split(/\n/).filter(function(line) {
+    return line.length > 0;
+  }).map(function(line) {
     return ">" + line;
   }).join("\n") + "\n";
 }
@@ -599,6 +601,7 @@ function quoteSelected(form, textarea) {
     if (post && post.classList.contains("post") &&
         post.contains(lastSel.focusNode)) {
       textarea.value = quoteText(lastSel.toString());
+      textarea.dispatchEvent(new Event("input"));
     }
   }
   lastSel = null;
