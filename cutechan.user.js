@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.1.5
+// @version     0.1.6
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -155,6 +155,11 @@ var GUI = (function() {
   nsecs.style.display = "inline-block";
   nsecs.style.width = "35px";
   nsecs.style.textAlign = "right";
+  nsecs.style.cursor = "default";
+  nsecs.style.userSelect = "none";
+  nsecs.style.msUserSelect = "none";
+  nsecs.style.MozUserSelect = "none";
+  nsecs.style.WebkitUserSelect = "none";
 
   main.appendChild(logo);
   nposts.appendChild(iconPost);
