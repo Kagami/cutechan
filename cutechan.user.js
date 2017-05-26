@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.1.1
+// @version     0.1.2
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -124,8 +124,8 @@ var GUI = (function() {
   main.style.background = "#d9d9d9";
   main.style.borderTop = "1px solid #ccc";
   main.style.borderLeft = "1px solid #ccc";
-  main.style.fontSize = "16px";
-  main.style.lineHeight = "50px";
+  main.style.fontSize = "15px";
+  main.style.lineHeight = "45px";
   main.style.paddingRight = "5px";
   main.style.position = "fixed";
   main.style.right = "0";
@@ -134,8 +134,8 @@ var GUI = (function() {
   var logo = document.createElement("span");
   logo.style.display = "inline-block";
   logo.style.verticalAlign = "bottom";
-  logo.style.width = "50px";
-  logo.style.height = "50px";
+  logo.style.width = "45px";
+  logo.style.height = "45px";
   logo.style.cursor = "pointer";
   logo.style.marginRight = "10px";
   logo.innerHTML = ICON_CUTE;
