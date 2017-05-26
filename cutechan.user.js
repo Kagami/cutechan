@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.1.6
+// @version     0.1.7
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -621,13 +621,19 @@ function quoteText(text) {
   }).join("\n") + "\n";
 }
 
+function flushInput(textarea, text) {
+  if (text != null) {
+    textarea.value = text;
+  }
+  textarea.dispatchEvent(new Event("input"));
+}
+
 function quoteSelected(form, textarea) {
   if (lastSel && !lastSel.isCollapsed) {
     var post = form.parentNode.previousElementSibling;
     if (post && post.classList.contains("post") &&
         post.contains(lastSel.focusNode)) {
-      textarea.value = quoteText(lastSel.toString());
-      textarea.dispatchEvent(new Event("input"));
+      flushInput(textarea, quoteText(lastSel.toString()));
     }
   }
   lastSel = null;
@@ -638,9 +644,10 @@ function formatSelected(textarea, markup) {
   var end = textarea.selectionEnd;
   var text = textarea.value;
   if (start < end) {
-    textarea.value = text.slice(0, start) +
-                     markup + text.slice(start, end) + markup +
-                     text.slice(end);
+    text = text.slice(0, start) +
+           markup + text.slice(start, end) + markup +
+           text.slice(end);
+    flushInput(textarea, text);
   }
 }
 
@@ -690,8 +697,9 @@ function embedFormatButtons(form, textarea) {
 function embedUpload(container) {
   var input = null;
   var textarea = container.querySelector("textarea");
-  var addText = function(text) {
+  var prependText = function(text) {
     textarea.value = textarea.value ? (text + "\n" + textarea.value) : text;
+    flushInput(textarea);
   };
 
   var buttons = container.querySelector(".attachment-btns");
@@ -736,7 +744,7 @@ function embedUpload(container) {
     icon.classList.remove("fa-file-video-o");
     icon.classList.add("fa-spinner", "fa-spin", "fa-fw");
     upload(selectedHost, input.files).then(function(urls) {
-      addText(urls.join(" "));
+      prependText(urls.join(" "));
     }, function(e) {
       var app = unsafeWindow.app;
       var msg = e.message || "network error";
@@ -746,7 +754,6 @@ function embedUpload(container) {
       icon.classList.remove("fa-spinner", "fa-spin", "fa-fw");
       icon.classList.add("fa-file-video-o");
       input.value = null;
-      textarea.dispatchEvent(new Event("input"));
     });
   });
 
@@ -920,8 +927,7 @@ function handlePostId(e) {
     if (textarea && textarea.offsetParent !== null) {
       var text = textarea.value;
       var postId = ">>" + node.textContent.trim().slice(1) + "\n";
-      textarea.value = text ? (text + "\n" + postId) : postId;
-      textarea.dispatchEvent(new Event("input"));
+      flushInput(textarea, text ? (text + "\n" + postId) : postId);
       textarea.focus();
     }
   }
