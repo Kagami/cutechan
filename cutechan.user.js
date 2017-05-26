@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.1.8
+// @version     0.1.9
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -927,7 +927,7 @@ function getVisibleTextarea() {
 function handlePostId(e) {
   var node = e.target;
   var nodeUp = node.parentElement;
-  if (nodeUp.classList.contains("post-id")) {
+  if (nodeUp && nodeUp.classList.contains("post-id")) {
     var textarea = getVisibleTextarea();
     if (textarea) {
       e.preventDefault();
@@ -944,7 +944,7 @@ function handlePostReply(e) {
   var node = e.target;
   var nodeUp = node.parentElement;
   if (node.classList.contains("post-button-reply") ||
-      nodeUp.classList.contains("post-button-reply")) {
+      (nodeUp && nodeUp.classList.contains("post-button-reply"))) {
     // Selection object is a singleton so need to clone.
     var sel = window.getSelection();
     var selText = sel.toString();
