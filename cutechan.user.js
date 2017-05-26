@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.1.4
+// @version     0.1.5
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -659,9 +659,17 @@ function embedFormatButtons(form, textarea) {
 
   var btnStrike = document.createElement("span");
   btnStrike.className = "btn btn-xs btn-default";
+  btnStrike.style.marginRight = "2px";
   btnStrike.addEventListener("click", formatSelected.bind(null, textarea, "-"));
   var iconStrike = document.createElement("i");
   iconStrike.className = "fa fa-strikethrough";
+
+  var btnSpoiler = document.createElement("span");
+  btnSpoiler.className = "btn btn-xs btn-default";
+  var cbSpoiler = formatSelected.bind(null, textarea, "%%");
+  btnSpoiler.addEventListener("click", cbSpoiler);
+  var iconSpoiler = document.createElement("i");
+  iconSpoiler.className = "fa fa-percent";
 
   btnBold.appendChild(iconBold);
   buttons.appendChild(btnBold);
@@ -669,6 +677,8 @@ function embedFormatButtons(form, textarea) {
   buttons.appendChild(btnItalic);
   btnStrike.appendChild(iconStrike);
   buttons.appendChild(btnStrike);
+  btnSpoiler.appendChild(iconSpoiler);
+  buttons.appendChild(btnSpoiler);
   textarea.previousElementSibling.appendChild(buttons);
 }
 
