@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.1.0
+// @version     0.1.1
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -34,19 +34,9 @@ GM_addStyle([
   '.threads .post-op .post-id:after{content:"OP";color:#cd5c5c}',
   '.threads .post-deleted .post-id:after{content:"deleted";color:#cd5c5c}',
   '.post-popup>.post .post-id:after{content:""}',
-
-  ".cute{",
-  "  z-index:1000;background:#d9d9d9;border-top:1px solid #ccc;",
-  "  border-left:1px solid #ccc;padding:10px 15px;position:fixed;",
-  "  right:0;bottom:0",
-  "}",
-  ".cute-nposts{padding-right:10px;border-right:2px solid #bbb}",
   ".cute-nposts:after{",
   "  content:counter(p);display:inline-block;width:35px;text-align:right",
   "}",
-  ".cute-update{padding-left:10px}",
-  ".cute-nsecs{display:inline-block;width:35px;text-align:right}",
-  ".cute-icon{color:#333}",
 ].join(""));
 
 var UPDATE_SECS = 15;
@@ -80,6 +70,14 @@ var ALLOWED_LINKS = ALLOWED_HOSTS.map(function(host) {
   host = host.replace(/\./g, "\\.");
   return new RegExp("^https://" + host + "/.+\\.(webm|mp4)$");
 });
+var ICON_CUTE = [
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">',
+  '  <path fill="#005f51" d="M50.526,20.211H461.474L424.421,444.632,256,488.421,87.579,444.632Z"/>',
+  '  <path fill="#00a572" d="M256,57.263H427.789L398,421,256,458.105V57.263Z"/>',
+  '  <path fill="#fff" d="M313.682,390.441A158.327,158.327,0,0,0,370.963,353.2L316.077,298.73a81.641,81.641,0,0,1-28.487,19.823,68.455,68.455,0,0,1-33.194,4.729,66.061,66.061,0,0,1-27.458-8.775,72.412,72.412,0,0,1-20.673-18.151,74.955,74.955,0,0,1-12.529-24.65,73.442,73.442,0,0,1-2.628-28.6,72.529,72.529,0,0,1,8.195-27.151,77.355,77.355,0,0,1,17.174-21.867A68.289,68.289,0,0,1,240.511,180.4a69.138,69.138,0,0,1,28.815-2.972q23.161,2.313,42.682,19.252l62.98-44.9a163.45,163.45,0,0,0-45.164-34.672,146.954,146.954,0,0,0-53.269-15.74,144.457,144.457,0,0,0-59.276,5.964A149.272,149.272,0,0,0,167,134.858a154.179,154.179,0,0,0-36.411,44.259,148.631,148.631,0,0,0-11.459,114.754,154.072,154.072,0,0,0,26.94,50.585,149.131,149.131,0,0,0,43.843,36.917,144.471,144.471,0,0,0,56.926,17.567A147.054,147.054,0,0,0,313.682,390.441Z"/>',
+  '  <path fill="#f1f1f1" d="M256,323.368s-0.994-.026-1.6-0.086a66.061,66.061,0,0,1-27.458-8.775,72.412,72.412,0,0,1-20.673-18.151,74.955,74.955,0,0,1-12.529-24.65,73.442,73.442,0,0,1-2.628-28.6,72.529,72.529,0,0,1,8.195-27.151,77.355,77.355,0,0,1,17.174-21.867A68.289,68.289,0,0,1,240.511,180.4c4.857-1.6,15.029-3.084,15.029-3.084l-0.035-76.642s-25.915,2.694-38.226,6.661A149.272,149.272,0,0,0,167,134.858a154.179,154.179,0,0,0-36.411,44.259,148.631,148.631,0,0,0-11.459,114.754,154.072,154.072,0,0,0,26.94,50.585,149.131,149.131,0,0,0,43.843,36.917,144.471,144.471,0,0,0,56.926,17.567A87.129,87.129,0,0,0,256,399V323.368Z"/>',
+  "</svg>",
+].join("");
 
 var updateBtn = null;
 var tid = null;
@@ -120,33 +118,56 @@ var Favicon = (function() {
   };
 })();
 
-var Counter = (function() {
-  var div = document.createElement("div");
-  div.className = "cute";
+var GUI = (function() {
+  var main = document.createElement("div");
+  main.style.zIndex = "1000";
+  main.style.background = "#d9d9d9";
+  main.style.borderTop = "1px solid #ccc";
+  main.style.borderLeft = "1px solid #ccc";
+  main.style.fontSize = "16px";
+  main.style.lineHeight = "50px";
+  main.style.paddingRight = "5px";
+  main.style.position = "fixed";
+  main.style.right = "0";
+  main.style.bottom = "0";
+
+  var logo = document.createElement("span");
+  logo.style.display = "inline-block";
+  logo.style.verticalAlign = "bottom";
+  logo.style.width = "50px";
+  logo.style.height = "50px";
+  logo.style.cursor = "pointer";
+  logo.style.marginRight = "10px";
+  logo.innerHTML = ICON_CUTE;
 
   var nposts = document.createElement("span");
   nposts.className = "cute-nposts";
+  nposts.style.paddingRight = "20px";
   var iconPost = document.createElement("i");
-  iconPost.className = "cute-icon fa fa-comments";
+  iconPost.className = "fa fa-comments";
+  iconPost.style.color = "#333";
 
   var btnUpd = document.createElement("span");
-  btnUpd.className = "cute-update";
   var iconUpd = document.createElement("i");
-  iconUpd.className = "cute-icon fa fa-refresh";
+  iconUpd.className = "fa fa-refresh";
+  iconUpd.style.color = "#333";
   var nsecs = document.createElement("span");
-  nsecs.className = "cute-nsecs";
+  nsecs.style.display = "inline-block";
+  nsecs.style.width = "35px";
+  nsecs.style.textAlign = "right";
 
+  main.appendChild(logo);
   nposts.appendChild(iconPost);
-  div.appendChild(nposts);
+  main.appendChild(nposts);
   btnUpd.appendChild(iconUpd);
   btnUpd.appendChild(nsecs);
-  div.appendChild(btnUpd);
+  main.appendChild(btnUpd);
 
   return {
-    embed: function(node) {
-      node.appendChild(div);
+    embed: function(container) {
+      container.appendChild(main);
     },
-    set: function(n) {
+    setCounter: function(n) {
       nsecs.textContent = n;
     },
   };
@@ -761,7 +782,7 @@ function update() {
     secs -= 1;
   }
   if (!document.hidden) {
-    Counter.set(secs);
+    GUI.setCounter(secs);
   }
   tid = setTimeout(update, 1000);
 }
@@ -769,8 +790,8 @@ function update() {
 function initUpdater(container) {
   if (tid == null) {
     secs = UPDATE_SECS;
-    Counter.set(secs);
-    Counter.embed(container);
+    GUI.setCounter(secs);
+    GUI.embed(container);
     tid = setTimeout(update, 1000);
   }
 }
