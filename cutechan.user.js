@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.1.9
+// @version     0.2.0
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -31,14 +31,15 @@ GM_addStyle([
   ".threads .post{counter-increment:p}",
   ".post-op,.post-deleted,.post-popup>.post{counter-increment:p 0!important}",
   '.threads .post-id:after{content:"("counter(p)")";color:#16a085}',
-  '.threads .post-op .post-id:after{content:"OP";color:#cd5c5c}',
-  '.threads .post-deleted .post-id:after{content:"deleted";color:#cd5c5c}',
+  '.threads .post-op .post-id:after{content:"ОП";color:#cd5c5c}',
+  '.threads .post-deleted .post-id:after{content:"удалён";color:#cd5c5c}',
   '.post-popup>.post .post-id:after{content:""}',
   ".cute-nposts:after{",
   "  content:counter(p);display:inline-block;width:35px;text-align:right",
   "}",
 ].join(""));
 
+var ZOOM_STEP = 100;
 var UPDATE_SECS = 15;
 var LOAD_BYTES1 = 100 * 1024;
 var LOAD_BYTES2 = 600 * 1024;
@@ -126,7 +127,7 @@ var GUI = (function() {
   main.style.borderLeft = "1px solid #ccc";
   main.style.fontSize = "15px";
   main.style.lineHeight = "45px";
-  main.style.paddingRight = "5px";
+  main.style.paddingRight = "10px";
   main.style.position = "fixed";
   main.style.right = "0";
   main.style.bottom = "0";
@@ -924,7 +925,124 @@ function getVisibleTextarea() {
   });
 }
 
-function handlePostId(e) {
+function getResolution(img) {
+  var raw = img.parentNode.previousElementSibling.textContent;
+  var parts = raw.trim().split(/[×,]/, 2);
+  return parts.map(function(n) {
+    return +n;
+  });
+}
+
+function showPopup(src) {
+  var url = src.parentNode.href;
+  var res = getResolution(src);
+
+  var w = res[0];
+  var h = res[1];
+  var aspect = w / h;
+  var pW = window.innerWidth;
+  var pH = window.innerHeight;
+  w = Math.min(w, pW);
+  h = Math.round(w / aspect);
+  if (h > pH) {
+    h = pH;
+    w = Math.round(h * aspect);
+  }
+  var l = (pW - w) / 2;
+  var t = (pH - h) / 2;
+
+  var backdrop = document.createElement("div");
+  backdrop.style.position = "fixed";
+  backdrop.style.zIndex = "2000";
+  backdrop.style.left = "0";
+  backdrop.style.right = "0";
+  backdrop.style.top = "0";
+  backdrop.style.bottom = "0";
+  var popup = document.createElement("div");
+  popup.style.position = "fixed";
+  popup.style.left = l + "px";
+  popup.style.top = t + "px";
+  var img = document.createElement("img");
+  img.src = url;
+  img.width = w;
+  img.style.display = "block";
+  img.style.userSelect = "none";
+  img.style.msUserSelect = "none";
+  img.style.MozUserSelect = "none";
+  img.style.WebkitUserSelect = "none";
+  popup.appendChild(img);
+  backdrop.appendChild(popup);
+
+  var destroy = null;
+  var moving = false;
+  var baseX = 0;
+  var baseY = 0;
+  var startX = 0;
+  var startY = 0;
+
+  var handleClick = function(e) {
+    if (e.target !== img) {
+      destroy();
+    }
+  };
+  var handleKey = function(e) {
+    if (e.keyCode === 27) {
+      destroy();
+    }
+  };
+  var handleDrag = function(e) {
+    e.preventDefault();
+  };
+  var handleMouseDown = function(e) {
+    moving = true;
+    baseX = e.clientX;
+    baseY = e.clientY;
+    startX = popup.offsetLeft;
+    startY = popup.offsetTop;
+  };
+  var handleMouseMove = function(e) {
+    if (moving) {
+      popup.style.left = (startX + e.clientX - baseX) + "px";
+      popup.style.top = (startY + e.clientY - baseY) + "px";
+    }
+  };
+  var handleMouseUp = function(e) {
+    moving = false;
+    if (e.clientX === baseX && e.clientY === baseY) {
+      destroy();
+    }
+  };
+  var handleWheel = function(e) {
+    e.preventDefault();
+
+    var order = e.deltaY < 0 ? 1 : -1;
+    if (w <= 50 && order < 0) return;
+    w = Math.max(50, w + ZOOM_STEP * order);
+    img.width = w;
+    l = popup.offsetLeft - (ZOOM_STEP / 2) * order;
+    t = popup.offsetTop - (ZOOM_STEP / aspect / 2) * order;
+    popup.style.left = l + "px";
+    popup.style.top = t + "px";
+  };
+  var create = function() {
+    document.body.appendChild(backdrop);
+    document.addEventListener("keydown", handleKey);
+    img.addEventListener("dragstart", handleDrag);
+    popup.addEventListener("mousedown", handleMouseDown);
+    backdrop.addEventListener("mousemove", handleMouseMove);
+    popup.addEventListener("mouseup", handleMouseUp);
+    popup.addEventListener("wheel", handleWheel);
+    backdrop.addEventListener("click", handleClick);
+  };
+  destroy = function() {
+    document.removeEventListener("keydown", handleKey);
+    backdrop.remove();
+  };
+
+  create();
+}
+
+function handleClick(e) {
   var node = e.target;
   var nodeUp = node.parentElement;
   if (nodeUp && nodeUp.classList.contains("post-id")) {
@@ -937,10 +1055,14 @@ function handlePostId(e) {
       flushInput(textarea, text ? (text + "\n" + postId) : postId);
       textarea.focus();
     }
+  } else if (node.classList.contains("post-img-thumbnail") && e.button === 0) {
+    e.preventDefault();
+    e.stopPropagation();
+    showPopup(node);
   }
 }
 
-function handlePostReply(e) {
+function handleMouseDown(e) {
   var node = e.target;
   var nodeUp = node.parentElement;
   if (node.classList.contains("post-button-reply") ||
@@ -966,6 +1088,6 @@ function handleVisibility() {
 }
 
 handleApp(document.body);
-window.addEventListener("click", handlePostId, true);
-window.addEventListener("mousedown", handlePostReply);
+window.addEventListener("click", handleClick, true);
+window.addEventListener("mousedown", handleMouseDown);
 document.addEventListener("visibilitychange", handleVisibility);
