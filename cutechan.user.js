@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.1.2
+// @version     0.1.3
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -644,6 +644,50 @@ function handleReply(e) {
   }
 }
 
+function formatSelected(textarea, markup) {
+  var start = textarea.selectionStart;
+  var end = textarea.selectionEnd;
+  var text = textarea.value;
+  if (start < end) {
+    textarea.value = text.slice(0, start) +
+                     markup + text.slice(start, end) + markup +
+                     text.slice(end);
+  }
+}
+
+function embedFormatButtons(form, textarea) {
+  var buttons = document.createElement("div");
+  buttons.style.float = "right";
+
+  var btnBold = document.createElement("span");
+  btnBold.className = "btn btn-xs btn-default";
+  btnBold.style.marginRight = "2px";
+  btnBold.addEventListener("click", formatSelected.bind(null, textarea, "**"));
+  var iconBold = document.createElement("i");
+  iconBold.className = "fa fa-bold";
+
+  var btnItalic = document.createElement("span");
+  btnItalic.className = "btn btn-xs btn-default";
+  btnItalic.style.marginRight = "2px";
+  btnItalic.addEventListener("click", formatSelected.bind(null, textarea, "*"));
+  var iconItalic = document.createElement("i");
+  iconItalic.className = "fa fa-italic";
+
+  var btnStrike = document.createElement("span");
+  btnStrike.className = "btn btn-xs btn-default";
+  btnStrike.addEventListener("click", formatSelected.bind(null, textarea, "-"));
+  var iconStrike = document.createElement("i");
+  iconStrike.className = "fa fa-strikethrough";
+
+  btnBold.appendChild(iconBold);
+  buttons.appendChild(btnBold);
+  btnItalic.appendChild(iconItalic);
+  buttons.appendChild(btnItalic);
+  btnStrike.appendChild(iconStrike);
+  buttons.appendChild(btnStrike);
+  textarea.previousElementSibling.appendChild(buttons);
+}
+
 function embedUpload(container) {
   var input = null;
   var textarea = container.querySelector("textarea");
@@ -716,6 +760,7 @@ function embedUpload(container) {
   buttons.appendChild(dropdown);
 
   quoteSelected(container, textarea);
+  embedFormatButtons(container, textarea);
 }
 
 function handlePosts(container) {
