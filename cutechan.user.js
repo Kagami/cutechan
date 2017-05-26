@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.1.3
+// @version     0.1.4
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -628,22 +628,6 @@ function quoteSelected(form, textarea) {
   lastSel = null;
 }
 
-function handleReply(e) {
-  var node = e.target.parentElement;
-  if (node && node.classList.contains("post-button-reply")) {
-    // Selection object is a singleton so need to clone.
-    var sel = window.getSelection();
-    var selText = sel.toString();
-    lastSel = {
-      isCollapsed: sel.isCollapsed,
-      focusNode: sel.focusNode,
-      toString: function() {
-        return selText;
-      },
-    };
-  }
-}
-
 function formatSelected(textarea, markup) {
   var start = textarea.selectionStart;
   var end = textarea.selectionEnd;
@@ -910,6 +894,42 @@ function handleApp(container) {
   observer.observe(container, {childList: true});
 }
 
+function handlePostId(e) {
+  var node = e.target;
+  var nodeUp = node.parentElement;
+  if (nodeUp.classList.contains("post-id")) {
+    e.preventDefault();
+    e.stopPropagation();
+    var textarea = document.querySelector(".reply-form textarea");
+    // See <https://stackoverflow.com/a/21696585>.
+    if (textarea && textarea.offsetParent !== null) {
+      var text = textarea.value;
+      var postId = ">>" + node.textContent.trim().slice(1) + "\n";
+      textarea.value = text ? (text + "\n" + postId) : postId;
+      textarea.dispatchEvent(new Event("input"));
+      textarea.focus();
+    }
+  }
+}
+
+function handlePostReply(e) {
+  var node = e.target;
+  var nodeUp = node.parentElement;
+  if (node.classList.contains("post-button-reply") ||
+      nodeUp.classList.contains("post-button-reply")) {
+    // Selection object is a singleton so need to clone.
+    var sel = window.getSelection();
+    var selText = sel.toString();
+    lastSel = {
+      isCollapsed: sel.isCollapsed,
+      focusNode: sel.focusNode,
+      toString: function() {
+        return selText;
+      },
+    };
+  }
+}
+
 function handleVisibility() {
   if (!document.hidden) {
     unread = 0;
@@ -918,5 +938,6 @@ function handleVisibility() {
 }
 
 handleApp(document.body);
-window.addEventListener("mousedown", handleReply);
+window.addEventListener("click", handlePostId, true);
+window.addEventListener("mousedown", handlePostReply);
 document.addEventListener("visibilitychange", handleVisibility);
