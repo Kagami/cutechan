@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.1.7
+// @version     0.1.8
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -916,15 +916,22 @@ function handleApp(container) {
   observer.observe(container, {childList: true});
 }
 
+function getVisibleTextarea() {
+  var nodes = document.querySelectorAll(".reply-form textarea");
+  return Array.prototype.find.call(nodes, function(node) {
+    // See <https://stackoverflow.com/a/21696585>.
+    return node.offsetParent !== null;
+  });
+}
+
 function handlePostId(e) {
   var node = e.target;
   var nodeUp = node.parentElement;
   if (nodeUp.classList.contains("post-id")) {
-    e.preventDefault();
-    e.stopPropagation();
-    var textarea = document.querySelector(".reply-form textarea");
-    // See <https://stackoverflow.com/a/21696585>.
-    if (textarea && textarea.offsetParent !== null) {
+    var textarea = getVisibleTextarea();
+    if (textarea) {
+      e.preventDefault();
+      e.stopPropagation();
       var text = textarea.value;
       var postId = ">>" + node.textContent.trim().slice(1) + "\n";
       flushInput(textarea, text ? (text + "\n" + postId) : postId);
