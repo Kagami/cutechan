@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.2.0
+// @version     0.2.1
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -682,7 +682,7 @@ function embedFormatButtons(form, textarea) {
   var cbSpoiler = formatSelected.bind(null, textarea, "%%");
   btnSpoiler.addEventListener("click", cbSpoiler);
   var iconSpoiler = document.createElement("i");
-  iconSpoiler.className = "fa fa-percent";
+  iconSpoiler.className = "fa fa-eye-slash";
 
   btnBold.appendChild(iconBold);
   buttons.appendChild(btnBold);
