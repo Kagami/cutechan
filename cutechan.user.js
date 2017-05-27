@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.2.6
+// @version     0.2.7
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -686,7 +686,6 @@ function embedFormatButtons(form, textarea) {
 
   var btnSpoiler = document.createElement("span");
   btnSpoiler.className = "btn btn-xs btn-default";
-  btnSpoiler.style.marginRight = "2px";
   var cbSpoiler = formatSelected.bind(null, textarea, "%%");
   btnSpoiler.addEventListener("click", cbSpoiler);
   var iconSpoiler = document.createElement("i");
