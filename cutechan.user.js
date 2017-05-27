@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.2.3
+// @version     0.2.4
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -655,6 +655,7 @@ function formatSelected(textarea, markup) {
            markup + text.slice(start, end) + markup +
            text.slice(end);
     flushInput(textarea, text);
+    textarea.focus();
   }
 }
 
