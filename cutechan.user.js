@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.2.1
+// @version     0.2.2
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -85,6 +85,7 @@ var tid = null;
 var secs = 0;
 var unread = 0;
 var lastSel = null;
+var lastUrl = "";
 
 var Favicon = (function() {
   var c = document.createElement("canvas");
@@ -933,8 +934,10 @@ function getResolution(img) {
   });
 }
 
-function showPopup(src) {
+function openPopup(src) {
   var url = src.parentNode.href;
+  if (url === lastUrl) return;
+  lastUrl = url;
   var res = getResolution(src);
 
   var w = res[0];
@@ -951,15 +954,9 @@ function showPopup(src) {
   var l = (pW - w) / 2;
   var t = (pH - h) / 2;
 
-  var backdrop = document.createElement("div");
-  backdrop.style.position = "fixed";
-  backdrop.style.zIndex = "2000";
-  backdrop.style.left = "0";
-  backdrop.style.right = "0";
-  backdrop.style.top = "0";
-  backdrop.style.bottom = "0";
   var popup = document.createElement("div");
   popup.style.position = "fixed";
+  popup.style.zIndex = "2000";
   popup.style.left = l + "px";
   popup.style.top = t + "px";
   var img = document.createElement("img");
@@ -971,7 +968,6 @@ function showPopup(src) {
   img.style.MozUserSelect = "none";
   img.style.WebkitUserSelect = "none";
   popup.appendChild(img);
-  backdrop.appendChild(popup);
 
   var destroy = null;
   var moving = false;
@@ -981,7 +977,7 @@ function showPopup(src) {
   var startY = 0;
 
   var handleClick = function(e) {
-    if (e.target !== img) {
+    if (e.target !== img && e.target !== updateBtn) {
       destroy();
     }
   };
@@ -1025,18 +1021,21 @@ function showPopup(src) {
     popup.style.top = t + "px";
   };
   var create = function() {
-    document.body.appendChild(backdrop);
+    document.body.appendChild(popup);
+    document.addEventListener("click", handleClick, true);
     document.addEventListener("keydown", handleKey);
+    document.addEventListener("mousemove", handleMouseMove);
     img.addEventListener("dragstart", handleDrag);
     popup.addEventListener("mousedown", handleMouseDown);
-    backdrop.addEventListener("mousemove", handleMouseMove);
     popup.addEventListener("mouseup", handleMouseUp);
     popup.addEventListener("wheel", handleWheel);
-    backdrop.addEventListener("click", handleClick);
   };
   destroy = function() {
+    document.removeEventListener("mousemove", handleMouseMove);
     document.removeEventListener("keydown", handleKey);
-    backdrop.remove();
+    document.removeEventListener("click", handleClick, true);
+    popup.remove();
+    lastUrl = "";
   };
 
   create();
@@ -1058,7 +1057,7 @@ function handleClick(e) {
   } else if (node.classList.contains("post-img-thumbnail") && e.button === 0) {
     e.preventDefault();
     e.stopPropagation();
-    showPopup(node);
+    openPopup(node);
   }
 }
 
@@ -1088,6 +1087,6 @@ function handleVisibility() {
 }
 
 handleApp(document.body);
-window.addEventListener("click", handleClick, true);
-window.addEventListener("mousedown", handleMouseDown);
+document.addEventListener("click", handleClick, true);
+document.addEventListener("mousedown", handleMouseDown);
 document.addEventListener("visibilitychange", handleVisibility);
