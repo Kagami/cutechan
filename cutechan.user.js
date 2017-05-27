@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.2.5
+// @version     0.2.6
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -692,18 +692,6 @@ function embedFormatButtons(form, textarea) {
   var iconSpoiler = document.createElement("i");
   iconSpoiler.className = "fa fa-eye-slash";
 
-  var btnQuote = document.createElement("span");
-  btnQuote.className = "btn btn-xs btn-default";
-  btnQuote.addEventListener("click", function() {
-    var sel = window.getSelection();
-    if (!sel.isCollapsed) {
-      addText(textarea, quoteText(sel.toString()));
-      textarea.focus();
-    }
-  });
-  var iconQuote = document.createElement("i");
-  iconQuote.className = "fa fa-quote-right";
-
   btnBold.appendChild(iconBold);
   buttons.appendChild(btnBold);
   btnItalic.appendChild(iconItalic);
@@ -712,8 +700,6 @@ function embedFormatButtons(form, textarea) {
   buttons.appendChild(btnStrike);
   btnSpoiler.appendChild(iconSpoiler);
   buttons.appendChild(btnSpoiler);
-  btnQuote.appendChild(iconQuote);
-  buttons.appendChild(btnQuote);
   textarea.previousElementSibling.appendChild(buttons);
 }
 
@@ -947,6 +933,14 @@ function getVisibleTextarea() {
   });
 }
 
+function getTextareaPost(textarea) {
+  var form = textarea.parentNode.parentNode;
+  var post = form.parentNode.previousElementSibling;
+  if (post && post.classList.contains("post")) {
+    return post;
+  }
+}
+
 function getResolution(img) {
   var raw = img.parentNode.previousElementSibling.textContent;
   var parts = raw.trim().split(/[×,]/, 2);
@@ -1070,8 +1064,18 @@ function handleClick(e) {
     if (textarea) {
       e.preventDefault();
       e.stopPropagation();
-      var postId = ">>" + node.textContent.trim().slice(1) + "\n";
-      addText(textarea, postId);
+      var sel = window.getSelection();
+      var post = nodeUp.parentNode.parentNode;
+      var quote = ">>" + node.textContent.trim().slice(1) + "\n";
+      if (!sel.isCollapsed && post.contains(sel.focusNode)) {
+        if (textarea.value.includes(quote) ||
+            getTextareaPost(textarea) === post) {
+          // Already cited post id.
+          quote = "";
+        }
+        quote += quoteText(sel.toString());
+      }
+      addText(textarea, quote);
       textarea.focus();
     }
   } else if (node.classList.contains("post-img-thumbnail") && e.button === 0) {
