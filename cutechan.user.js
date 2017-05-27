@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.2.4
+// @version     0.2.5
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -1025,7 +1025,7 @@ function openPopup(src) {
   };
   var handleMouseUp = function(e) {
     moving = false;
-    if (e.clientX === baseX && e.clientY === baseY) {
+    if (e.button === 0 && e.clientX === baseX && e.clientY === baseY) {
       destroy();
     }
   };
