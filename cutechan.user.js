@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.2.2
+// @version     0.2.3
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -630,6 +630,11 @@ function flushInput(textarea, text) {
   textarea.dispatchEvent(new Event("input"));
 }
 
+function addText(textarea, text) {
+  textarea.value = textarea.value ? (textarea.value + "\n" + text) : text;
+  flushInput(textarea);
+}
+
 function quoteSelected(form, textarea) {
   if (lastSel && !lastSel.isCollapsed) {
     var post = form.parentNode.previousElementSibling;
@@ -680,10 +685,23 @@ function embedFormatButtons(form, textarea) {
 
   var btnSpoiler = document.createElement("span");
   btnSpoiler.className = "btn btn-xs btn-default";
+  btnSpoiler.style.marginRight = "2px";
   var cbSpoiler = formatSelected.bind(null, textarea, "%%");
   btnSpoiler.addEventListener("click", cbSpoiler);
   var iconSpoiler = document.createElement("i");
   iconSpoiler.className = "fa fa-eye-slash";
+
+  var btnQuote = document.createElement("span");
+  btnQuote.className = "btn btn-xs btn-default";
+  btnQuote.addEventListener("click", function() {
+    var sel = window.getSelection();
+    if (!sel.isCollapsed) {
+      addText(textarea, quoteText(sel.toString()));
+      textarea.focus();
+    }
+  });
+  var iconQuote = document.createElement("i");
+  iconQuote.className = "fa fa-quote-right";
 
   btnBold.appendChild(iconBold);
   buttons.appendChild(btnBold);
@@ -693,6 +711,8 @@ function embedFormatButtons(form, textarea) {
   buttons.appendChild(btnStrike);
   btnSpoiler.appendChild(iconSpoiler);
   buttons.appendChild(btnSpoiler);
+  btnQuote.appendChild(iconQuote);
+  buttons.appendChild(btnQuote);
   textarea.previousElementSibling.appendChild(buttons);
 }
 
@@ -938,8 +958,8 @@ function openPopup(src) {
   var url = src.parentNode.href;
   if (url === lastUrl) return;
   lastUrl = url;
-  var res = getResolution(src);
 
+  var res = getResolution(src);
   var w = res[0];
   var h = res[1];
   var aspect = w / h;
@@ -1035,7 +1055,7 @@ function openPopup(src) {
     document.removeEventListener("keydown", handleKey);
     document.removeEventListener("click", handleClick, true);
     popup.remove();
-    lastUrl = "";
+    if (url === lastUrl) lastUrl = "";
   };
 
   create();
@@ -1049,9 +1069,8 @@ function handleClick(e) {
     if (textarea) {
       e.preventDefault();
       e.stopPropagation();
-      var text = textarea.value;
       var postId = ">>" + node.textContent.trim().slice(1) + "\n";
-      flushInput(textarea, text ? (text + "\n" + postId) : postId);
+      addText(textarea, postId);
       textarea.focus();
     }
   } else if (node.classList.contains("post-img-thumbnail") && e.button === 0) {
