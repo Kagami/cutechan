@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.3.2
+// @version     0.3.3
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -65,7 +65,8 @@ GM_addStyle([
   "}",
 
   ".cute-settings{",
-  "  z-index:1000;background:#f1f1f1;border:1px solid #ccc;",
+  "  z-index:1000;background:#f1f1f1;",
+  "  border:1px solid #ccc;border-right-width:0;",
   "  position:fixed;right:0;bottom:45px;padding:5px;",
   "}",
   ".cute-checkbox{margin-top:0!important;cursor:pointer}",
