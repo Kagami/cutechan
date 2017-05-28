@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.3.1
+// @version     0.3.2
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -63,6 +63,12 @@ GM_addStyle([
   "  cursor:default;user-select:none;",
   "  -ms-user-select:none;-moz-user-select:none;-webkit-user-select:none;",
   "}",
+
+  ".cute-settings{",
+  "  z-index:1000;background:#f1f1f1;border:1px solid #ccc;",
+  "  position:fixed;right:0;bottom:45px;padding:5px;",
+  "}",
+  ".cute-checkbox{margin-top:0!important;cursor:pointer}",
 ].join(""));
 
 var ZOOM_STEP = 100;
@@ -145,13 +151,43 @@ var Favicon = (function() {
   };
 })();
 
+var Settings = (function() {
+  var KEY = "cute_settings";
+  var DEFAULTS = {
+    popupBackdrop: true,
+  };
+  var getAll = function() {
+    var cfg = null;
+    try {
+      cfg = JSON.parse(localStorage.getItem(KEY));
+    } catch (e) {
+      /* skip */
+    }
+    return Object.assign({}, DEFAULTS, cfg);
+  };
+  return {
+    get: function(name) {
+      return getAll()[name];
+    },
+    set: function(name, value) {
+      var cfg = getAll();
+      cfg[name] = value;
+      localStorage.setItem(KEY, JSON.stringify(cfg));
+    },
+  };
+})();
+
 var Panel = (function() {
-  var main = document.createElement("div");
-  main.className = "cute-panel";
+  var panel = document.createElement("div");
+  panel.className = "cute-panel";
+  var settings = null;
 
   var logo = document.createElement("span");
   logo.className = "cute-logo";
   logo.innerHTML = ICON_CUTE;
+  logo.addEventListener("click", function() {
+    settings.classList.toggle("hidden");
+  });
 
   var nposts = document.createElement("span");
   nposts.className = "cute-nposts";
@@ -164,16 +200,38 @@ var Panel = (function() {
   var nsecs = document.createElement("span");
   nsecs.className = "cute-nsecs";
 
-  main.appendChild(logo);
+  settings = document.createElement("div");
+  settings.className = "cute-settings";
+  var form = document.createElement("form");
+  var backdrop = document.createElement("div");
+  backdrop.className = "checkbox";
+  var lbBackdrop = document.createElement("label");
+  var chBackdrop = document.createElement("input");
+  chBackdrop.className = "cute-checkbox";
+  chBackdrop.setAttribute("type", "checkbox");
+  chBackdrop.checked = Settings.get("popupBackdrop");
+  chBackdrop.addEventListener("change", function() {
+    Settings.set("popupBackdrop", chBackdrop.checked);
+  });
+  lbBackdrop.appendChild(chBackdrop);
+  var tBackdrop = " Закрывать картинки по нажатию на фон";
+  lbBackdrop.appendChild(document.createTextNode(tBackdrop));
+  backdrop.appendChild(lbBackdrop);
+  form.appendChild(backdrop);
+  settings.appendChild(form);
+
+  panel.appendChild(logo);
   nposts.appendChild(iconPost);
-  main.appendChild(nposts);
+  panel.appendChild(nposts);
   btnUpd.appendChild(iconUpd);
   btnUpd.appendChild(nsecs);
-  main.appendChild(btnUpd);
+  panel.appendChild(btnUpd);
 
   return {
     embedToThread: function(container) {
-      container.appendChild(main);
+      settings.classList.add("hidden");
+      container.appendChild(panel);
+      container.appendChild(settings);
     },
     setUpdateCounter: function(n) {
       nsecs.textContent = n;
@@ -1027,6 +1085,7 @@ function openPopup(src) {
   var startY = 0;
 
   var handleClick = function(e) {
+    if (!Settings.get("popupBackdrop")) return;
     if (e.target !== img && e.target !== updateBtn) {
       destroy();
     }
