@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.3.6
+// @version     0.3.7
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -125,6 +125,7 @@ var ALLOWED_LINKS = ALLOWED_HOSTS.map(function(host) {
 var STICKER_PACKS = [
   {name: "K-pop 0chan", albumId: "9hXjm"},
   {name: "K-pop cute", albumId: "sXBbD"},
+  {name: "K-pop 8ch", albumId: "LcP00"},
 ];
 var ICON_CUTE = [
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">',
