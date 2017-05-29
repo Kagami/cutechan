@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.3.4
+// @version     0.3.5
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -823,6 +823,13 @@ function flushInput(textarea, text) {
   textarea.dispatchEvent(new Event("input"));
 }
 
+function prependText(textarea, text, sep) {
+  sep = sep || "\n";
+  textarea.value = textarea.value ? (text + sep + textarea.value) : text;
+  flushInput(textarea);
+  textarea.focus();
+}
+
 function addText(textarea, text, sep) {
   sep = sep || "\n";
   textarea.value = textarea.value ? (textarea.value + sep + text) : text;
@@ -885,7 +892,7 @@ function openStickerPopup(pack) {
       img.addEventListener("click", function() {
         var textarea = getVisibleTextarea();
         if (textarea) {
-          addText(textarea, url);
+          prependText(textarea, url);
           destroy();
         }
       });
@@ -1022,11 +1029,6 @@ function embedFormatButtons(form, textarea) {
 function embedUpload(container) {
   var input = null;
   var textarea = container.querySelector("textarea");
-  var prependText = function(text) {
-    textarea.value = textarea.value ? (text + "\n" + textarea.value) : text;
-    flushInput(textarea);
-  };
-
   var buttons = container.querySelector(".attachment-btns");
 
   var dropdown = document.createElement("div");
@@ -1069,7 +1071,7 @@ function embedUpload(container) {
     icon.classList.remove("fa-file-video-o");
     icon.classList.add("fa-spinner", "fa-spin", "fa-fw");
     upload(selectedHost, input.files).then(function(urls) {
-      prependText(urls.join(" "));
+      prependText(textarea, urls.join(" "));
     }, function(e) {
       var app = unsafeWindow.app;
       var msg = e.message || "network error";
