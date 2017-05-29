@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.3.3
+// @version     0.3.4
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -70,6 +70,23 @@ GM_addStyle([
   "  position:fixed;right:0;bottom:45px;padding:5px;",
   "}",
   ".cute-checkbox{margin-top:0!important;cursor:pointer}",
+
+  ".cute-backdrop{position:fixed;z-index:2000;left:0;right:0;top:0;bottom:0}",
+  ".cute-sticker-popup{",
+  "  position:fixed;left:50%;top:50%;",
+  "  width:800px;height:800px;margin-left:-400px;margin-top:-400px;",
+  "  background:#f1f1f1;border-radius:15px;border:1px solid #ccc;",
+  "}",
+  ".cute-sticker-title{text-align:center;margin-bottom:20px}",
+  ".cute-sticker-list{",
+  "  height:722px;overflow-y:auto;display:flex;flex-wrap:wrap;",
+  "  padding:10px;justify-content:center;",
+  "}",
+  ".cute-sticker-img{",
+  "  display:block;box-sizing:border-box;max-width:20%;padding:3px;",
+  "  align-self:center;cursor:pointer;",
+  "}",
+  ".cute-sticker-img:hover{border:3px solid orange;padding:0}",
 ].join(""));
 
 var ZOOM_STEP = 100;
@@ -78,6 +95,7 @@ var LOAD_BYTES1 = 100 * 1024;
 var LOAD_BYTES2 = 600 * 1024;
 var THUMB_SIZE = 200;
 var THUMB_VERSION = 2;
+var THUMB_SERVICE = "bnw-thmb.r.worldssl.net";
 var UPLOAD_HOSTS = [
   {host: "safe.moe", maxSizeMB: 200, api: "loli-safe"},
   {host: "pomf.space", maxSizeMB: 256, api: "pomf"},
@@ -104,6 +122,9 @@ var ALLOWED_LINKS = ALLOWED_HOSTS.map(function(host) {
   host = host.replace(/\./g, "\\.");
   return new RegExp("^https://" + host + "/.+\\.(webm|mp4)$");
 });
+var STICKER_PACKS = [
+  {name: "K-pop 0chan", albumId: "9hXjm"},
+];
 var ICON_CUTE = [
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">',
   '  <path class="cute-logo-left" d="M50.526,20.211H461.474L424.421,444.632,256,488.421,87.579,444.632Z"/>',
@@ -148,6 +169,60 @@ var Favicon = (function() {
     },
     reset: function() {
       link.href = origURL;
+    },
+  };
+})();
+
+var Imgur = (function() {
+  // https://github.com/eirikb/gifie/blob/gh-pages/app.js
+  var CLIENT_ID = "6a5400948b3b376";
+  var API_ENDPOINT = "https://api.imgur.com/3";
+  var STATIC_HOST = "i.imgur.com";
+  var PNG_RE = new RegExp("^https://" +
+                          STATIC_HOST.replace(/\./g, "\\.") +
+                          "/(\\w+)\\.png$");
+
+  var api = function(url) {
+    return new Promise(function(resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      url = API_ENDPOINT + url;
+      xhr.open("GET", url, true);
+      xhr.setRequestHeader("Authorization", "Client-ID " + CLIENT_ID);
+      xhr.onload = function() {
+        if (this.status >= 200 && this.status < 400) {
+          resolve(JSON.parse(this.responseText));
+        } else {
+          reject(new Error(this.responseText));
+        }
+      };
+      xhr.onerror = reject;
+      xhr.send();
+    });
+  };
+
+  return {
+    isPngUrl: function(url) {
+      return PNG_RE.test(url);
+    },
+    getImageId: function(url) {
+      var m = url.match(PNG_RE);
+      if (m) {
+        return m[1];
+      }
+    },
+    getImageInfo: function(imageId) {
+      return api("/image/" + imageId).then(function(res) {
+        return res.data;
+      });
+    },
+    getAlbumImages: function(albumId) {
+      return api("/album/" + albumId + "/images").then(function(res) {
+        return res.data.filter(function(item) {
+          return item.type === "image/png";
+        }).map(function(item) {
+          return "https://" + STATIC_HOST + "/" + item.id + ".png";
+        });
+      });
     },
   };
 })();
@@ -239,6 +314,12 @@ var Panel = (function() {
     },
   };
 })();
+
+function isVideoUrl(url) {
+  return ALLOWED_LINKS.some(function(re) {
+    return re.test(url);
+  });
+}
 
 function getContentSize(headers) {
   var range = headers
@@ -570,6 +651,35 @@ function createVideoElement(post, link, thumb) {
   return container;
 }
 
+function createImageElement(link) {
+  var meta = getMetadataFromCache(link.href);
+
+  var container = document.createElement("div");
+  container.className = "post-img";
+
+  var caption = document.createElement("figcaption");
+  caption.textContent += meta.width;
+  caption.textContent += "×";
+  caption.textContent += meta.height;
+  caption.textContent += ", ";
+  caption.textContent += (meta.size / 1024).toFixed(2);
+  caption.textContent += "Кб";
+
+  var a = document.createElement("a");
+  a.href = link.href;
+  a.setAttribute("target", "_blank");
+  a.style.display = "block";
+
+  var img = document.createElement("img");
+  img.className = "post-img-thumbnail";
+  img.src = getThumbUrl(link.href);
+
+  a.appendChild(img);
+  container.appendChild(caption);
+  container.appendChild(a);
+  return container;
+}
+
 function getThumbFromCache(url) {
   var key = "thumb_v" + THUMB_VERSION + "_" + url;
   return localStorage.getItem(key);
@@ -621,13 +731,36 @@ function embedVideo(post, link) {
   }
 }
 
+function embedImage(link) {
+  var embed = function() {
+    var div = createImageElement(link);
+    link.parentNode.replaceChild(div, link);
+  };
+
+  if (hasMetadataInCache(link.href)) {
+    embed();
+  } else {
+    var imageId = Imgur.getImageId(link.href);
+    Imgur.getImageInfo(imageId).then(function(info) {
+      saveMetadataToCache(link.href, {
+        size: info.size,
+        width: info.width,
+        height: info.height,
+      });
+      embed();
+    });
+  }
+}
+
 function handlePost(post) {
   var links = post.querySelectorAll("a[target=_blank]");
-  Array.prototype.filter.call(links, function(link) {
-    return ALLOWED_LINKS.some(function(re) {
-      return re.test(link.href);
-    });
-  }).forEach(embedVideo.bind(null, post));
+  Array.prototype.forEach.call(links, function(link) {
+    if (isVideoUrl(link.href)) {
+      embedVideo(post, link);
+    } else if (Imgur.isPngUrl(link.href)) {
+      embedImage(link);
+    }
+  });
 }
 
 function uploadXHR(host, data) {
@@ -727,6 +860,67 @@ function formatSelected(textarea, markup) {
   }
 }
 
+function getThumbUrl(origUrl) {
+  return "https://" + THUMB_SERVICE + "/unsafe/fit-in/" +
+         THUMB_SIZE + "x" + THUMB_SIZE + "/" +
+         origUrl;
+}
+
+function openStickerPopup(pack) {
+  var destroy = null;
+  var backdrop = document.createElement("div");
+  backdrop.className = "cute-backdrop";
+  var popup = document.createElement("div");
+  popup.className = "cute-sticker-popup";
+  var title = document.createElement("h3");
+  title.className = "cute-sticker-title";
+  title.textContent = "Стикер-пак «" + pack.name + "»";
+  var stickers = document.createElement("div");
+  stickers.className = "cute-sticker-list";
+  Imgur.getAlbumImages(pack.albumId).then(function(urls) {
+    urls.forEach(function(url) {
+      var img = document.createElement("img");
+      img.className = "cute-sticker-img";
+      img.src = getThumbUrl(url);
+      img.addEventListener("click", function() {
+        var textarea = getVisibleTextarea();
+        if (textarea) {
+          addText(textarea, url);
+          destroy();
+        }
+      });
+      stickers.appendChild(img);
+    });
+  });
+  popup.appendChild(title);
+  popup.appendChild(stickers);
+  backdrop.appendChild(popup);
+
+  var handleBackdropClick = function() {
+    destroy();
+  };
+  var handlePopupClick = function(e) {
+    e.stopPropagation();
+  };
+  var handleKey = function(e) {
+    if (e.keyCode === 27) {
+      destroy();
+    }
+  };
+  var create = function() {
+    document.body.appendChild(backdrop);
+    document.addEventListener("keydown", handleKey);
+    popup.addEventListener("click", handlePopupClick);
+    backdrop.addEventListener("click", handleBackdropClick);
+  };
+  destroy = function() {
+    document.removeEventListener("keydown", handleKey);
+    backdrop.remove();
+  };
+
+  create();
+}
+
 function embedFormatButtons(form, textarea) {
   var line = textarea.previousElementSibling;
   line.style.lineHeight = "22px";
@@ -776,11 +970,35 @@ function embedFormatButtons(form, textarea) {
 
   var btnBullet = document.createElement("span");
   btnBullet.className = "btn btn-xs btn-default";
+  btnBullet.style.marginRight = "2px";
   btnBullet.addEventListener("click", function() {
     addText(textarea, "• ");
   });
   var iconBullet = document.createElement("i");
   iconBullet.className = "fa fa-list-ul";
+
+  var dropdown = document.createElement("div");
+  dropdown.className = "btn-group";
+  var btnSticker = document.createElement("span");
+  btnSticker.className = "btn btn-xs btn-default dropdown-toggle";
+  btnSticker.addEventListener("click", function() {
+    dropdown.classList.toggle("open");
+  });
+  var iconSticker = document.createElement("i");
+  iconSticker.className = "fa fa-sticky-note";
+  var menu = document.createElement("ul");
+  menu.className = "dropdown-menu";
+  STICKER_PACKS.forEach(function(pack) {
+    var item = document.createElement("li");
+    var link = document.createElement("a");
+    link.textContent = pack.name;
+    link.addEventListener("click", function() {
+      dropdown.classList.remove("open");
+      openStickerPopup(pack);
+    });
+    item.appendChild(link);
+    menu.appendChild(item);
+  });
 
   btnBold.appendChild(iconBold);
   buttons.appendChild(btnBold);
@@ -794,6 +1012,10 @@ function embedFormatButtons(form, textarea) {
   buttons.appendChild(btnCode);
   btnBullet.appendChild(iconBullet);
   buttons.appendChild(btnBullet);
+  btnSticker.appendChild(iconSticker);
+  dropdown.appendChild(btnSticker);
+  dropdown.appendChild(menu);
+  buttons.appendChild(dropdown);
   line.appendChild(buttons);
 }
 
