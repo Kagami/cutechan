@@ -565,24 +565,20 @@ function createVideoElement(post, link, thumb) {
   });
 
   var caption = document.createElement("figcaption");
-  if ((meta.width && meta.height) || meta.size) {
-    caption.textContent += meta.width;
-    caption.textContent += "×";
-    caption.textContent += meta.height;
-    caption.textContent += ", ";
-    if (meta.size >= 1024 * 1024) {
-      caption.textContent += (meta.size / 1024 / 1024).toFixed(2);
-      caption.textContent += "Мб";
-    } else {
-      caption.textContent += (meta.size / 1024).toFixed(2);
-      caption.textContent += "Кб";
-    }
-    if (meta.duration) {
-      caption.textContent += ", ";
-      caption.textContent += showTime(Math.round(meta.duration));
-    }
+  caption.textContent += meta.width;
+  caption.textContent += "×";
+  caption.textContent += meta.height;
+  caption.textContent += ", ";
+  if (meta.size >= 1024 * 1024) {
+    caption.textContent += (meta.size / 1024 / 1024).toFixed(2);
+    caption.textContent += "Мб";
   } else {
-    caption.textContent = "неизвестно";
+    caption.textContent += (meta.size / 1024).toFixed(2);
+    caption.textContent += "Кб";
+  }
+  if (meta.duration) {
+    caption.textContent += ", ";
+    caption.textContent += showTime(Math.round(meta.duration));
   }
 
   var expand = function() {
