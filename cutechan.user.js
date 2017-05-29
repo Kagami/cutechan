@@ -667,6 +667,7 @@ function createImageElement(link) {
   a.href = link.href;
   a.setAttribute("target", "_blank");
   a.style.display = "block";
+  a.style.outline = "none";
 
   var img = document.createElement("img");
   img.className = "post-img-thumbnail";
