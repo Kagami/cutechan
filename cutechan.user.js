@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.3.8
+// @version     0.3.9
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -790,7 +790,8 @@ function flushInput(textarea, text) {
 
 function prependText(textarea, text, sep) {
   sep = sep || "\n";
-  textarea.value = textarea.value ? (text + sep + textarea.value) : text;
+  text += sep;
+  textarea.value = textarea.value ? (text + textarea.value) : text;
   flushInput(textarea);
   textarea.focus();
 }
