@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.4.1
+// @version     0.4.2
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -1272,10 +1272,10 @@ function openMediaPopup(src) {
   var pW = window.innerWidth;
   var pH = window.innerHeight;
   w = Math.min(w, pW);
-  h = Math.round(w / aspect);
+  h = Math.ceil(w / aspect);
   if (h > pH) {
     h = pH;
-    w = Math.round(h * aspect);
+    w = Math.ceil(h * aspect);
   }
   var l = (pW - w) / 2;
   var t = (pH - h) / 2;
