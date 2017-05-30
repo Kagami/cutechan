@@ -82,9 +82,13 @@ GM_addStyle([
   "  height:722px;overflow-y:auto;display:flex;flex-wrap:wrap;",
   "  padding:10px;justify-content:center;",
   "}",
+  ".cute-sticker-item{",
+  "  width:20%;text-align:center;",
+  "  line-height:200px;vertical-align:middle;",
+  "}",
   ".cute-sticker-img{",
-  "  display:block;box-sizing:border-box;max-width:20%;padding:3px;",
-  "  align-self:center;cursor:pointer;",
+  "  max-width:100%;padding:3px;cursor:pointer;user-select:none;",
+  "  -ms-user-select:none;-moz-user-select:none;-webkit-user-select:none;",
   "}",
   ".cute-sticker-img:hover{border:3px solid orange;padding:0}",
 ].join(""));
@@ -885,6 +889,8 @@ function openStickerPopup(pack) {
   stickers.className = "cute-sticker-list";
   Imgur.getAlbumImages(pack.albumId).then(function(urls) {
     urls.forEach(function(url) {
+      var item = document.createElement("div");
+      item.className = "cute-sticker-item";
       var img = document.createElement("img");
       img.className = "cute-sticker-img";
       img.src = getThumbUrl(url);
@@ -895,7 +901,8 @@ function openStickerPopup(pack) {
           destroy();
         }
       });
-      stickers.appendChild(img);
+      item.appendChild(img);
+      stickers.appendChild(item);
     });
   });
   popup.appendChild(title);
