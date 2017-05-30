@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.3.9
+// @version     0.4.0
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -74,6 +74,7 @@ GM_addStyle([
   ".cute-checkbox{margin-top:0!important;cursor:pointer}",
 
   ".cute-backdrop{position:fixed;z-index:2000;left:0;right:0;top:0;bottom:0}",
+
   ".cute-sticker-popup{",
   "  position:fixed;left:50%;top:50%;",
   "  width:800px;height:800px;margin-left:-400px;margin-top:-400px;",
@@ -93,6 +94,12 @@ GM_addStyle([
   "  -ms-user-select:none;-moz-user-select:none;-webkit-user-select:none;",
   "}",
   ".cute-sticker-img:hover{border:3px solid orange;padding:0}",
+
+  ".cute-media-popup{position:fixed;z-index:2000}",
+  ".cute-media-item{",
+  "  display:block;outline:none;user-select:none;",
+  "  -ms-user-select:none;-moz-user-select:none;-webkit-user-select:none;",
+  "}",
 ].join(""));
 
 var ZOOM_STEP = 100;
@@ -1260,8 +1267,7 @@ function openMediaPopup(src) {
   var t = (pH - h) / 2;
 
   var popup = document.createElement("div");
-  popup.style.position = "fixed";
-  popup.style.zIndex = "2000";
+  popup.className = "cute-media-popup";
   popup.style.left = l + "px";
   popup.style.top = t + "px";
 
@@ -1280,11 +1286,7 @@ function openMediaPopup(src) {
   }
   media.src = url;
   media.width = w;
-  media.style.display = "block";
-  media.style.userSelect = "none";
-  media.style.msUserSelect = "none";
-  media.style.MozUserSelect = "none";
-  media.style.WebkitUserSelect = "none";
+  media.className = "cute-media-item";
   popup.appendChild(media);
 
   var destroy = null;
