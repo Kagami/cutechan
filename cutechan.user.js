@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.4.2
+// @version     0.4.3
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -86,8 +86,9 @@ GM_addStyle([
   "  padding:10px;justify-content:center;",
   "}",
   ".cute-sticker-item{",
-  "  width:20%;text-align:center;",
+  "  display:block;width:20%;text-align:center;",
   "  line-height:200px;vertical-align:middle;",
+  "  cursor:default;outline:none;",
   "}",
   ".cute-sticker-img{",
   "  max-width:100%;padding:3px;cursor:pointer;user-select:none;",
@@ -874,22 +875,28 @@ function openStickerPopup(pack) {
   // TODO: Progress, error handling.
   Imgur.getAlbumImages(pack.albumId).then(function(urls) {
     urls.forEach(function(url) {
-      var item = document.createElement("div");
+      var item = document.createElement("a");
       item.className = "cute-sticker-item";
+      item.href = url;
       var img = document.createElement("img");
       img.className = "cute-sticker-img";
       img.src = getThumbUrl(url);
-      // TODO: Use single bubbling event listener.
-      img.addEventListener("click", function() {
-        var textarea = getVisibleTextarea();
-        if (textarea) {
-          prependText(textarea, url);
-          destroy();
-        }
-      });
       item.appendChild(img);
       stickers.appendChild(item);
     });
+  });
+  stickers.addEventListener("click", function(e) {
+    var node = e.target;
+    if (node.classList.contains("cute-sticker-item")) {
+      e.preventDefault();
+    } else if (node.classList.contains("cute-sticker-img")) {
+      e.preventDefault();
+      var textarea = getVisibleTextarea();
+      if (textarea) {
+        prependText(textarea, node.parentNode.href);
+        destroy();
+      }
+    }
   });
   popup.appendChild(title);
   popup.appendChild(stickers);
