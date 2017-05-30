@@ -28,6 +28,8 @@
 "use strict";
 
 GM_addStyle([
+  ".post-img a{outline:none}",
+
   ".threads{counter-reset:p}",
   ".threads .post{counter-increment:p}",
   ".post-op,.post-deleted,.post-popup>.post{counter-increment:p 0!important}",
@@ -537,10 +539,20 @@ function saveVolumeToCache(volume) {
   setCacheItem("webm_volume", volume);
 }
 
-function createVideoElement(link, thumb) {
+function getThumbFromCache(url) {
+  var key = "thumb_v" + THUMB_VERSION + "_" + url;
+  return localStorage.getItem(key);
+}
+
+function saveThumbToCache(url, thumb) {
+  var key = "thumb_v" + THUMB_VERSION + "_" + url;
+  setCacheItem(key, thumb);
+}
+
+function createVideoAttachment(link, thumb) {
   var meta = getMetadataFromCache(link.href);
 
-  var container = document.createElement("div");
+  var container = document.createElement("figure");
   container.className = "post-img";
 
   var labels = document.createElement("div");
@@ -549,8 +561,8 @@ function createVideoElement(link, thumb) {
   label.className = "post-img-label post-img-gif-label";
   label.textContent = link.href.endsWith(".mp4") ? "MP4" : "WebM";
 
-  var btns = document.createElement("div");
-  btns.className = "post-img-buttons";
+  var buttons = document.createElement("div");
+  buttons.className = "post-img-buttons";
   var btnCopy = document.createElement("span");
   var iconCopy = document.createElement("i");
   btnCopy.className = "post-img-button";
@@ -580,28 +592,27 @@ function createVideoElement(link, thumb) {
   var a = document.createElement("a");
   a.href = link.href;
   a.title = meta.title;
-  a.style.display = "block";
-  a.style.outline = "none";
+  a.setAttribute("target", "_blank");
 
   var img = document.createElement("img");
   img.className = "post-img-thumbnail";
   img.src = thumb;
 
   labels.appendChild(label);
-  btnCopy.appendChild(iconCopy);
-  btns.appendChild(btnCopy);
-  a.appendChild(img);
   container.appendChild(labels);
-  if (meta.title) container.appendChild(btns);
+  btnCopy.appendChild(iconCopy);
+  buttons.appendChild(btnCopy);
+  if (meta.title) container.appendChild(buttons);
   container.appendChild(caption);
+  a.appendChild(img);
   container.appendChild(a);
   return container;
 }
 
-function createImageElement(link) {
+function createImageAttachment(link, thumb) {
   var meta = getMetadataFromCache(link.href);
 
-  var container = document.createElement("div");
+  var container = document.createElement("figure");
   container.className = "post-img";
 
   var caption = document.createElement("figcaption");
@@ -614,27 +625,35 @@ function createImageElement(link) {
 
   var a = document.createElement("a");
   a.href = link.href;
-  a.style.display = "block";
-  a.style.outline = "none";
+  a.setAttribute("target", "_blank");
 
   var img = document.createElement("img");
   img.className = "post-img-thumbnail";
-  img.src = getThumbUrl(link.href);
+  img.src = thumb;
 
-  a.appendChild(img);
   container.appendChild(caption);
+  a.appendChild(img);
   container.appendChild(a);
   return container;
 }
 
-function getThumbFromCache(url) {
-  var key = "thumb_v" + THUMB_VERSION + "_" + url;
-  return localStorage.getItem(key);
-}
-
-function saveThumbToCache(url, thumb) {
-  var key = "thumb_v" + THUMB_VERSION + "_" + url;
-  setCacheItem(key, thumb);
+function embedAttachment(post, link, attachment) {
+  var body = post.querySelector(".post-body");
+  var attachments = body.querySelector(".post-attachments");
+  if (attachments) {
+    body.classList.remove("post-inline-attachment");
+  } else {
+    attachments = document.createElement("div");
+    attachments.className = "post-attachments";
+    body.insertBefore(attachments, body.firstChild);
+    body.classList.add("post-inline-attachment");
+  }
+  attachments.appendChild(attachment);
+  var next = link.nextElementSibling;
+  if (next && next.tagName === "BR") {
+    next.remove();
+  }
+  link.remove();
 }
 
 function embedVideo(post, link) {
@@ -648,8 +667,7 @@ function embedVideo(post, link) {
   };
   var part2 = function(thumb) {
     return new Promise(function(resolve/*, reject*/) {
-      var div = createVideoElement(link, thumb);
-      link.parentNode.replaceChild(div, link);
+      embedAttachment(post, link, createVideoAttachment(link, thumb));
       if (!cachedThumb) {
         saveThumbToCache(link.href, thumb);
       }
@@ -680,8 +698,8 @@ function embedVideo(post, link) {
 
 function embedImage(post, link) {
   var embed = function() {
-    var div = createImageElement(link);
-    link.parentNode.replaceChild(div, link);
+    var thumb = getThumbUrl(link.href);
+    embedAttachment(post, link, createImageAttachment(link, thumb));
   };
 
   if (hasMetadataInCache(link.href)) {
