@@ -296,7 +296,7 @@ var Panel = (function() {
     Settings.set("popupBackdrop", chBackdrop.checked);
   });
   lbBackdrop.appendChild(chBackdrop);
-  var tBackdrop = " Закрывать картинки по нажатию на фон";
+  var tBackdrop = " Закрывать картинки/видео по нажатию на фон";
   lbBackdrop.appendChild(document.createTextNode(tBackdrop));
   backdrop.appendChild(lbBackdrop);
   form.appendChild(backdrop);
@@ -537,16 +537,8 @@ function saveVolumeToCache(volume) {
   setCacheItem("webm_volume", volume);
 }
 
-function createVideoElement(post, link, thumb) {
+function createVideoElement(link, thumb) {
   var meta = getMetadataFromCache(link.href);
-  var body = post.querySelector(".post-body");
-  var bodyWidth = body.style.maxWidth;
-  var bodyMsg = post.querySelector(".post-body-message");
-  var bodyMsgHeight = bodyMsg.style.maxHeight;
-  var attachments = post.querySelector(".post-inline-attachment");
-  var attachHeight = attachments && attachments.style.maxHeight;
-  var vid = null;
-  var a = null;
 
   var container = document.createElement("div");
   container.className = "post-img";
@@ -565,7 +557,7 @@ function createVideoElement(post, link, thumb) {
   iconCopy.className = "fa fa-clipboard";
   btnCopy.title = "Copy title to clipboard";
   btnCopy.addEventListener("click", function() {
-    GM_setClipboard(vid.title);
+    GM_setClipboard(meta.title);
   });
 
   var caption = document.createElement("figcaption");
@@ -585,62 +577,15 @@ function createVideoElement(post, link, thumb) {
     caption.textContent += showTime(Math.round(meta.duration));
   }
 
-  var expand = function() {
-    if (attachments) attachments.style.maxHeight = "none";
-    body.style.maxWidth = "1305px";
-    bodyMsg.style.maxHeight = "none";
-    labels.style.display = "none";
-    caption.style.display = "none";
-    container.replaceChild(vid, a);
-    vid.volume = getVolumeFromCache();
-    vid.src = link.href;
-  };
-  var minimize = function() {
-    if (attachments) attachments.style.maxHeight = attachHeight;
-    body.style.maxWidth = bodyWidth;
-    bodyMsg.style.maxHeight = bodyMsgHeight;
-    labels.style.display = "block";
-    caption.style.display = "block";
-    container.replaceChild(a, vid);
-    vid.pause();
-    vid.removeAttribute("src");
-    vid.load();
-  };
-
-  a = document.createElement("a");
+  var a = document.createElement("a");
+  a.href = link.href;
+  a.title = meta.title;
   a.style.display = "block";
   a.style.outline = "none";
-  a.title = meta.title;
-  a.href = link.href;
-  var img = document.createElement("img");
-  img.style.display = "block";
-  img.src = thumb;
-  a.addEventListener("click", function(e) {
-    e.preventDefault();
-    expand();
-  });
 
-  vid = document.createElement("video");
-  vid.style.display = "block";
-  vid.style.maxWidth = "100%";
-  vid.style.maxHeight = "960px";
-  vid.style.cursor = "pointer";
-  vid.loop = true;
-  vid.autoplay = true;
-  vid.controls = true;
-  vid.title = meta.title;
-  vid.addEventListener("click", function(e) {
-    // <https://stackoverflow.com/a/22928167>.
-    var ctrlHeight = 50;
-    var rect = vid.getBoundingClientRect();
-    var relY = e.clientY - rect.top;
-    if (relY < rect.height - ctrlHeight) {
-      minimize();
-    }
-  });
-  vid.addEventListener("volumechange", function() {
-    saveVolumeToCache(vid.volume);
-  });
+  var img = document.createElement("img");
+  img.className = "post-img-thumbnail";
+  img.src = thumb;
 
   labels.appendChild(label);
   btnCopy.appendChild(iconCopy);
@@ -669,7 +614,6 @@ function createImageElement(link) {
 
   var a = document.createElement("a");
   a.href = link.href;
-  a.setAttribute("target", "_blank");
   a.style.display = "block";
   a.style.outline = "none";
 
@@ -704,7 +648,7 @@ function embedVideo(post, link) {
   };
   var part2 = function(thumb) {
     return new Promise(function(resolve/*, reject*/) {
-      var div = createVideoElement(post, link, thumb);
+      var div = createVideoElement(link, thumb);
       link.parentNode.replaceChild(div, link);
       if (!cachedThumb) {
         saveThumbToCache(link.href, thumb);
@@ -734,7 +678,7 @@ function embedVideo(post, link) {
   }
 }
 
-function embedImage(link) {
+function embedImage(post, link) {
   var embed = function() {
     var div = createImageElement(link);
     link.parentNode.replaceChild(div, link);
@@ -761,7 +705,7 @@ function handlePost(post) {
     if (isVideoUrl(link.href)) {
       embedVideo(post, link);
     } else if (Imgur.isPngUrl(link.href)) {
-      embedImage(link);
+      embedImage(post, link);
     }
   });
 }
@@ -887,6 +831,7 @@ function openStickerPopup(pack) {
   title.textContent = "Стикер-пак «" + pack.name + "»";
   var stickers = document.createElement("div");
   stickers.className = "cute-sticker-list";
+  // TODO: Progress, error handling.
   Imgur.getAlbumImages(pack.albumId).then(function(urls) {
     urls.forEach(function(url) {
       var item = document.createElement("div");
@@ -894,6 +839,7 @@ function openStickerPopup(pack) {
       var img = document.createElement("img");
       img.className = "cute-sticker-img";
       img.src = getThumbUrl(url);
+      // TODO: Use single bubbling event listener.
       img.addEventListener("click", function() {
         var textarea = getVisibleTextarea();
         if (textarea) {
@@ -1265,16 +1211,17 @@ function getTextareaPost(textarea) {
   }
 }
 
-function getResolution(img) {
-  var raw = img.parentNode.previousElementSibling.textContent;
+function getResolution(media) {
+  var raw = media.parentNode.previousElementSibling.textContent;
   var parts = raw.trim().split(/[×,]/, 2);
   return parts.map(function(n) {
     return +n;
   });
 }
 
-function openPopup(src) {
+function openMediaPopup(src) {
   var url = src.parentNode.href;
+  var isVideo = url.endsWith(".webm") || url.endsWith(".mp4");
   if (url === lastUrl) return;
   lastUrl = url;
 
@@ -1298,15 +1245,28 @@ function openPopup(src) {
   popup.style.zIndex = "2000";
   popup.style.left = l + "px";
   popup.style.top = t + "px";
-  var img = document.createElement("img");
-  img.src = url;
-  img.width = w;
-  img.style.display = "block";
-  img.style.userSelect = "none";
-  img.style.msUserSelect = "none";
-  img.style.MozUserSelect = "none";
-  img.style.WebkitUserSelect = "none";
-  popup.appendChild(img);
+
+  var media = null;
+  if (isVideo) {
+    media = document.createElement("video");
+    media.loop = true;
+    media.autoplay = true;
+    media.controls = true;
+    media.volume = getVolumeFromCache();
+    media.addEventListener("volumechange", function() {
+      saveVolumeToCache(media.volume);
+    });
+  } else {
+    media = document.createElement("img");
+  }
+  media.src = url;
+  media.width = w;
+  media.style.display = "block";
+  media.style.userSelect = "none";
+  media.style.msUserSelect = "none";
+  media.style.MozUserSelect = "none";
+  media.style.WebkitUserSelect = "none";
+  popup.appendChild(media);
 
   var destroy = null;
   var moving = false;
@@ -1315,9 +1275,21 @@ function openPopup(src) {
   var startX = 0;
   var startY = 0;
 
+  var isControlsClick = function(e) {
+    if (isVideo) {
+      // <https://stackoverflow.com/a/22928167>.
+      var ctrlHeight = 50;
+      var rect = media.getBoundingClientRect();
+      var relY = e.clientY - rect.top;
+      if (relY > rect.height - ctrlHeight) {
+        return true;
+      }
+    }
+    return false;
+  };
   var handleClick = function(e) {
     if (!Settings.get("popupBackdrop")) return;
-    if (e.target !== img && e.target !== updateBtn) {
+    if (e.target !== media && e.target !== updateBtn) {
       destroy();
     }
   };
@@ -1326,10 +1298,15 @@ function openPopup(src) {
       destroy();
     }
   };
-  var handleDrag = function(e) {
+  var handleMediaClick = function(e) {
+    if (!isControlsClick(e)) {
+      e.preventDefault();
+    }
+  };
+  var handleMediaDrag = function(e) {
     e.preventDefault();
   };
-  var handleMouseDown = function(e) {
+  var handlePopupMouseDown = function(e) {
     moving = true;
     baseX = e.clientX;
     baseY = e.clientY;
@@ -1342,19 +1319,20 @@ function openPopup(src) {
       popup.style.top = (startY + e.clientY - baseY) + "px";
     }
   };
-  var handleMouseUp = function(e) {
+  var handlePopupMouseUp = function(e) {
     moving = false;
     if (e.button === 0 && e.clientX === baseX && e.clientY === baseY) {
-      destroy();
+      if (!isControlsClick(e)) {
+        destroy();
+      }
     }
   };
-  var handleWheel = function(e) {
+  var handlePopupWheel = function(e) {
     e.preventDefault();
-
     var order = e.deltaY < 0 ? 1 : -1;
     if (w <= 50 && order < 0) return;
     w = Math.max(50, w + ZOOM_STEP * order);
-    img.width = w;
+    media.width = w;
     l = popup.offsetLeft - (ZOOM_STEP / 2) * order;
     t = popup.offsetTop - (ZOOM_STEP / aspect / 2) * order;
     popup.style.left = l + "px";
@@ -1365,10 +1343,11 @@ function openPopup(src) {
     document.addEventListener("click", handleClick, true);
     document.addEventListener("keydown", handleKey);
     document.addEventListener("mousemove", handleMouseMove);
-    img.addEventListener("dragstart", handleDrag);
-    popup.addEventListener("mousedown", handleMouseDown);
-    popup.addEventListener("mouseup", handleMouseUp);
-    popup.addEventListener("wheel", handleWheel);
+    media.addEventListener("click", handleMediaClick);
+    media.addEventListener("dragstart", handleMediaDrag);
+    popup.addEventListener("mousedown", handlePopupMouseDown);
+    popup.addEventListener("mouseup", handlePopupMouseUp);
+    popup.addEventListener("wheel", handlePopupWheel);
   };
   destroy = function() {
     document.removeEventListener("mousemove", handleMouseMove);
@@ -1405,7 +1384,7 @@ function handleClick(e) {
   } else if (node.classList.contains("post-img-thumbnail") && e.button === 0) {
     e.preventDefault();
     e.stopPropagation();
-    openPopup(node);
+    openMediaPopup(node);
   }
 }
 
