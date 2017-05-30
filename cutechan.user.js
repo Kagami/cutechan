@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.4.0
+// @version     0.4.1
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -107,7 +107,7 @@ var UPDATE_SECS = 15;
 var LOAD_BYTES1 = 100 * 1024;
 var LOAD_BYTES2 = 600 * 1024;
 var THUMB_SIZE = 200;
-var THUMB_VERSION = 2;
+var THUMB_VERSION = 3;
 var THUMB_SERVICE = "bnw-thmb.r.worldssl.net";
 var UPLOAD_HOSTS = [
   {host: "safe.moe", maxSizeMB: 200, api: "loli-safe"},
@@ -404,6 +404,19 @@ function hqDownsampleInPlace(src, dst) {
   return src;
 }
 
+function hasAlpha(src) {
+  var ctx = src.getContext("2d");
+  var data = ctx.getImageData(0, 0, src.width, src.height).data;
+  var len = data.length;
+  var i = 3;
+  for (; i < len; i += 4) {
+    if (data[i] !== 255) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function pad2(n) {
   n |= 0;
   return (n < 10 ? "0" : "") + n;
@@ -534,7 +547,8 @@ function makeThumbnail(src) {
       dst.width = Math.round(THUMB_SIZE * src.width / src.height);
       dst.height = THUMB_SIZE;
     }
-    resolve(hqDownsampleInPlace(src, dst).toDataURL("image/jpeg"));
+    dst = hqDownsampleInPlace(src, dst);
+    resolve(dst.toDataURL(hasAlpha(dst) ? "image/png" : "image/jpeg"));
   });
 }
 
