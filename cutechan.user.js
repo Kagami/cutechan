@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.4.5
+// @version     0.4.6
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -248,6 +248,7 @@ var Settings = (function() {
   var DEFAULTS = {
     popupBackdrop: true,
     noko: true,
+    hideKpop: false,
   };
   var getAll = function() {
     var cfg = null;
@@ -327,8 +328,24 @@ var Panel = (function() {
   lbNoko.appendChild(document.createTextNode(tNoko));
   noko.appendChild(lbNoko);
 
+  var kpop = document.createElement("div");
+  kpop.className = "checkbox";
+  var lbKpop = document.createElement("label");
+  var chKpop = document.createElement("input");
+  chKpop.className = "cute-checkbox";
+  chKpop.setAttribute("type", "checkbox");
+  chKpop.checked = Settings.get("hideKpop");
+  chKpop.addEventListener("change", function() {
+    Settings.set("hideKpop", chKpop.checked);
+  });
+  lbKpop.appendChild(chKpop);
+  var tKpop = " Скрывать треды /kpop";
+  lbKpop.appendChild(document.createTextNode(tKpop));
+  kpop.appendChild(lbKpop);
+
   form.appendChild(backdrop);
   form.appendChild(noko);
+  form.appendChild(kpop);
   settings.appendChild(form);
 
   panel.appendChild(logo);
@@ -1152,12 +1169,28 @@ function handleThread(container) {
   embedUpload(document.querySelector(".reply-form"));
 }
 
+function hideThread(thread) {
+  var board = thread.querySelector(".post-id a");
+  if (Settings.get("hideKpop") && board.pathname === "/kpop") {
+    thread.remove();
+    return true;
+  }
+  return false;
+}
+
+function hideThreads(container) {
+  // Can't iterate while removing items.
+  var threads = Array.prototype.slice.call(container.children);
+  threads.forEach(hideThread);
+}
+
 function handleThreads(container) {
   var observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(mutation) {
       Array.prototype.forEach.call(mutation.addedNodes, function(node) {
         if (node.nodeType !== Node.ELEMENT_NODE) return;
         if (node.parentNode === container) {
+          if (hideThread(node)) return;
           handlePosts(node);
         } else if (node.classList.contains("post-popup")) {
           handlePost(node);
@@ -1168,6 +1201,7 @@ function handleThreads(container) {
     });
   });
   observer.observe(container, {childList: true, subtree: true});
+  hideThreads(container);
   handlePosts(container);
   embedUpload(document.querySelector(".reply-form"));
 }
