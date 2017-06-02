@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.4.4
+// @version     0.4.5
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -247,6 +247,7 @@ var Settings = (function() {
   var KEY = "cute_settings";
   var DEFAULTS = {
     popupBackdrop: true,
+    noko: true,
   };
   var getAll = function() {
     var cfg = null;
@@ -295,6 +296,7 @@ var Panel = (function() {
   settings = document.createElement("div");
   settings.className = "cute-settings";
   var form = document.createElement("form");
+
   var backdrop = document.createElement("div");
   backdrop.className = "checkbox";
   var lbBackdrop = document.createElement("label");
@@ -309,7 +311,24 @@ var Panel = (function() {
   var tBackdrop = " Закрывать картинки/видео по нажатию на фон";
   lbBackdrop.appendChild(document.createTextNode(tBackdrop));
   backdrop.appendChild(lbBackdrop);
+
+  var noko = document.createElement("div");
+  noko.className = "checkbox";
+  var lbNoko = document.createElement("label");
+  var chNoko = document.createElement("input");
+  chNoko.className = "cute-checkbox";
+  chNoko.setAttribute("type", "checkbox");
+  chNoko.checked = Settings.get("noko");
+  chNoko.addEventListener("change", function() {
+    Settings.set("noko", chNoko.checked);
+  });
+  lbNoko.appendChild(chNoko);
+  var tNoko = " Переходить в тред после ответа";
+  lbNoko.appendChild(document.createTextNode(tNoko));
+  noko.appendChild(lbNoko);
+
   form.appendChild(backdrop);
+  form.appendChild(noko);
   settings.appendChild(form);
 
   panel.appendChild(logo);
@@ -929,6 +948,10 @@ function openStickerPopup(pack) {
 
 function embedFormatButtons(form, textarea) {
   var line = textarea.previousElementSibling;
+  if (!line) {
+    line = document.createElement("div");
+    textarea.parentNode.insertBefore(line, textarea);
+  }
   line.style.lineHeight = "22px";
 
   var buttons = document.createElement("div");
@@ -1182,15 +1205,22 @@ function clearUpdater() {
   }
 }
 
-function disabledScroll() {}
+function nop() {}
 
-function disableScrollToPost() {
+function fixOnSubmit(t) {
+  if (t.isOpPost) {
+    location.reload();
+  }
+}
+
+function setThreadFn(name, fn) {
+  fn = fn || nop;
   try {
     // Someone please kill me.
     var threadObj = unsafeWindow.app.$children[0].$children[5].$children[0];
-    threadObj.scrollToPost = typeof exportFunction === "undefined"
-      ? disabledScroll
-      : exportFunction(disabledScroll, unsafeWindow);
+    threadObj[name] = typeof exportFunction === "undefined"
+      ? fn
+      : exportFunction(fn, unsafeWindow);
   } catch (e) {
     /* skip */
   }
@@ -1202,11 +1232,12 @@ function handleNavigation() {
   var container = document.querySelector("#content");
   clearUpdater();
   updateBtn = null;
+  if (!Settings.get("noko")) setThreadFn("onPostSubmit", fixOnSubmit);
   if (singleThread) {
     updateBtn = singleThread.querySelector(":scope > .btn-group .btn-default");
     handleThread(singleThread);
     initUpdater(singleThread);
-    disableScrollToPost();
+    setThreadFn("scrollToPost");
   } else if (firstThread) {
     handleThreads(firstThread.parentNode.parentNode);
   } else if (container && !container.children.length) {
