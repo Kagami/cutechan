@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.4.6
+// @version     0.4.7
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -246,6 +246,7 @@ var Imgur = (function() {
 var Settings = (function() {
   var KEY = "cute_settings";
   var DEFAULTS = {
+    volume: 0,
     popupBackdrop: true,
     noko: true,
     hideKpop: false,
@@ -266,7 +267,7 @@ var Settings = (function() {
     set: function(name, value) {
       var cfg = getAll();
       cfg[name] = value;
-      localStorage.setItem(KEY, JSON.stringify(cfg));
+      setCacheItem(KEY, JSON.stringify(cfg));
     },
   };
 })();
@@ -587,14 +588,6 @@ function makeThumbnail(src) {
     dst = hqDownsampleInPlace(src, dst);
     resolve(dst.toDataURL(hasAlpha(dst) ? "image/png" : "image/jpeg"));
   });
-}
-
-function getVolumeFromCache() {
-  return +localStorage.getItem("webm_volume") || 0;
-}
-
-function saveVolumeToCache(volume) {
-  setCacheItem("webm_volume", volume);
 }
 
 function getThumbFromCache(url) {
@@ -1363,9 +1356,9 @@ function openMediaPopup(src) {
     media.loop = true;
     media.autoplay = true;
     media.controls = true;
-    media.volume = getVolumeFromCache();
+    media.volume = Settings.get("volume");
     media.addEventListener("volumechange", function() {
-      saveVolumeToCache(media.volume);
+      Settings.set("volume", media.volume);
     });
   } else {
     media = document.createElement("img");
