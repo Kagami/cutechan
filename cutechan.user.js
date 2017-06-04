@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.4.7
+// @version     0.4.8
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -570,7 +570,7 @@ function makeScreenshot(vid) {
     var ctx = c.getContext("2d");
     c.width = vid.videoWidth;
     c.height = vid.videoHeight;
-    ctx.drawImage(vid, 0, 0);
+    ctx.drawImage(vid, 0, 0, c.width, c.height);
     resolve(c);
   });
 }
