@@ -204,10 +204,11 @@ var Imgur = (function() {
       var xhr = new XMLHttpRequest();
       url = API_ENDPOINT + url;
       xhr.open("GET", url, true);
+      xhr.responseType = "json";
       xhr.setRequestHeader("Authorization", "Client-ID " + CLIENT_ID);
       xhr.onload = function() {
         if (this.status >= 200 && this.status < 400) {
-          resolve(JSON.parse(this.responseText));
+          resolve(this.response);
         } else {
           reject(new Error(this.responseText));
         }
