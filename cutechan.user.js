@@ -149,6 +149,7 @@ var ICON_CUTE = [
   "</svg>",
 ].join("");
 
+// Globals.
 var updateBtn = null;
 var tid = null;
 var secs = 0;
@@ -1106,8 +1107,8 @@ function embedUpload(container) {
       prependText(textarea, urls.join(" "));
     }, function(e) {
       var app = unsafeWindow.app;
-      var msg = e.message || "network error";
-      app.$bus.emit("alertError", "Upload failed\n\n" + msg);
+      var msg = e.message || "ошибка сети";
+      app.$bus.emit("alertError", "Загрузка не удалась\n\n" + msg);
     }).then(function() {
       button.disabled = false;
       icon.classList.remove("fa-spinner", "fa-spin", "fa-fw");
