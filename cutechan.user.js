@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.4.8
+// @version     0.4.9
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -18,6 +18,7 @@
 // @connect     memenet.org
 // @connect     mixtape.moe
 // @connect     lewd.es
+// @connect     pomf.cat
 // @connect     gfycat.com
 // @connect     2ch.hk
 // @connect     brchan.org
@@ -113,11 +114,12 @@ var THUMB_SERVICE = "bnw-thmb.r.worldssl.net";
 var UPLOAD_HOSTS = [
   {host: "safe.moe", maxSizeMB: 200, api: "loli-safe"},
   {host: "pomf.space", maxSizeMB: 256, api: "pomf"},
-  {host: "doko.moe", maxSizeMB: 2048, api: "pomf"},
+  {host: "doko.moe", maxSizeMB: 2048, api: "pomf", addHost: true},
   {host: "null.vg", maxSizeMB: 128, api: "pomf"},
-  {host: "memenet.org", maxSizeMB: 128, api: "pomf"},
+  // {host: "memenet.org", maxSizeMB: 128, api: "pomf"},
   {host: "mixtape.moe", maxSizeMB: 100, api: "pomf"},
-  {host: "lewd.es", maxSizeMB: 500, api: "pomf"},
+  // {host: "lewd.es", maxSizeMB: 500, api: "pomf"},
+  {host: "pomf.cat", maxSizeMB: 75, api: "pomf", addHost: true},
 ];
 var ALLOWED_HOSTS = [
   "a.safe.moe",
@@ -126,12 +128,14 @@ var ALLOWED_HOSTS = [
   "dev.null.vg",
   "i.memenet.org",
   "[a-z0-9]+.mixtape.moe",
+  "a.pomf.cat",
   "p.lewd.es",
   "[a-z0-9]+.gfycat.com",
   "2ch.hk",
   "brchan.org",
   "[a-z0-9]+.4chan.org",
 ];
+var NO_CONTROLS_HOST = "pomf.cat";
 var ALLOWED_LINKS = ALLOWED_HOSTS.map(function(host) {
   host = host.replace(/\./g, "\\.");
   return new RegExp("^https://" + host + "/.+\\.(webm|mp4)$");
@@ -805,9 +809,8 @@ function uploadXHR(host, data) {
 }
 
 function getFileURL(host, file) {
-  if (host.host === "doko.moe") {
-    // WTF, doko?
-    return "https://a.doko.moe/" + file.url;
+  if (host.addHost) {
+    return "https://a." + host.host + "/" + file.url;
   } else {
     return file.url;
   }
@@ -1085,6 +1088,10 @@ function embedUpload(container) {
     var item = document.createElement("li");
     var link = document.createElement("a");
     link.textContent = "Через " + host.host + " (" + host.maxSizeMB + "Мб)";
+    if (host.host === NO_CONTROLS_HOST) {
+      link.textContent += " ⏏";
+      link.title = "Без контролов";
+    }
     link.addEventListener("click", function() {
       selectedHost = host;
       dropdown.classList.remove("open");
@@ -1318,21 +1325,22 @@ function getTextareaPost(textarea) {
   }
 }
 
-function getResolution(media) {
-  var raw = media.parentNode.previousElementSibling.textContent;
+function getResolution(node) {
+  var raw = node.parentNode.previousElementSibling.textContent;
   var parts = raw.trim().split(/[×,]/, 2);
   return parts.map(function(n) {
     return +n;
   });
 }
 
-function openMediaPopup(src) {
-  var url = src.parentNode.href;
+function openMediaPopup(node) {
+  var link = node.parentNode;
+  var url = link.href;
   var isVideo = url.endsWith(".webm") || url.endsWith(".mp4");
   if (url === lastUrl) return;
   lastUrl = url;
 
-  var res = getResolution(src);
+  var res = getResolution(node);
   var w = res[0];
   var h = res[1];
   var aspect = w / h;
@@ -1357,7 +1365,7 @@ function openMediaPopup(src) {
     media = document.createElement("video");
     media.loop = true;
     media.autoplay = true;
-    media.controls = true;
+    media.controls = !link.hostname.endsWith(NO_CONTROLS_HOST);
     media.volume = Settings.get("volume");
     media.addEventListener("volumechange", function() {
       Settings.set("volume", media.volume);
