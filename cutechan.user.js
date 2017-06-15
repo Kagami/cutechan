@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.4.9
+// @version     0.5.0
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -106,6 +106,7 @@ GM_addStyle([
 
 var ZOOM_STEP = 100;
 var UPDATE_SECS = 15;
+var MAX_UPDATE_TRIES = 3;
 var LOAD_BYTES1 = 100 * 1024;
 var LOAD_BYTES2 = 600 * 1024;
 var THUMB_SIZE = 200;
@@ -128,8 +129,8 @@ var ALLOWED_HOSTS = [
   "dev.null.vg",
   "i.memenet.org",
   "[a-z0-9]+.mixtape.moe",
-  "a.pomf.cat",
   "p.lewd.es",
+  "a.pomf.cat",
   "[a-z0-9]+.gfycat.com",
   "2ch.hk",
   "brchan.org",
@@ -157,6 +158,7 @@ var ICON_CUTE = [
 var updateBtn = null;
 var tid = null;
 var secs = 0;
+var tries = 0;
 var unread = 0;
 var lastSel = null;
 var lastUrl = "";
@@ -1211,8 +1213,11 @@ function handleThreads(container) {
 function update() {
   if (secs <= 1) {
     secs = UPDATE_SECS;
-    if (!updateBtn.querySelector(".fa-spin")) {
+    if (updateBtn.querySelector(".fa-spin") && tries < MAX_UPDATE_TRIES) {
+      tries += 1;
+    } else {
       updateBtn.click();
+      tries = 0;
     }
   } else {
     secs -= 1;
