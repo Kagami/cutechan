@@ -1216,8 +1216,8 @@ function update() {
     if (updateBtn.querySelector(".fa-spin") && tries < MAX_UPDATE_TRIES) {
       tries += 1;
     } else {
-      updateBtn.click();
       tries = 0;
+      updateBtn.click();
     }
   } else {
     secs -= 1;
