@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.5.2
+// @version     0.5.3
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -107,7 +107,7 @@ GM_addStyle([
 var ZOOM_STEP = 100;
 var UPDATE_SECS = 15;
 var MAX_UPDATE_TRIES = 3;
-var RELOAD_TIMEOUT = 5 * 60 * 1000;
+var RELOAD_TIMEOUT = 3 * 60 * 1000;
 var LOAD_BYTES1 = 100 * 1024;
 var LOAD_BYTES2 = 600 * 1024;
 var THUMB_SIZE = 200;
