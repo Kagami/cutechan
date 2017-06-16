@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.5.1
+// @version     0.5.2
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -350,7 +350,7 @@ var Panel = (function() {
     Settings.set("reloadFav", chReload.checked);
   });
   lbReload.appendChild(chReload);
-  var tReload = " Периодически обновлять подборку";
+  var tReload = " Периодически обновлять подборку и главную";
   lbReload.appendChild(document.createTextNode(tReload));
   reload.appendChild(lbReload);
 
@@ -1533,7 +1533,8 @@ function handleVisibility() {
 function handleReload() {
   if (Settings.get("reloadFav")) {
     setTimeout(function() {
-      if (location.pathname === "/$fav") {
+      if ((location.pathname === "/$fav" || location.pathname === "/")
+          && document.hidden) {
         location.reload();
       } else {
         handleReload();
