@@ -6,7 +6,7 @@
 // @updateURL   https://raw.githubusercontent.com/Kagami/cutechan/master/cutechan.user.js
 // @include     https://0chan.hk/*
 // @include     http://nullchan7msxi257.onion/*
-// @version     0.5.0
+// @version     0.5.1
 // @grant       unsafeWindow
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setClipboard
@@ -107,6 +107,7 @@ GM_addStyle([
 var ZOOM_STEP = 100;
 var UPDATE_SECS = 15;
 var MAX_UPDATE_TRIES = 3;
+var RELOAD_TIMEOUT = 5 * 60 * 1000;
 var LOAD_BYTES1 = 100 * 1024;
 var LOAD_BYTES2 = 600 * 1024;
 var THUMB_SIZE = 200;
@@ -258,6 +259,7 @@ var Settings = (function() {
     popupBackdrop: true,
     noko: true,
     hideKpop: false,
+    reloadFav: false,
   };
   var getAll = function() {
     var cfg = null;
@@ -337,24 +339,24 @@ var Panel = (function() {
   lbNoko.appendChild(document.createTextNode(tNoko));
   noko.appendChild(lbNoko);
 
-  var kpop = document.createElement("div");
-  kpop.className = "checkbox";
-  var lbKpop = document.createElement("label");
-  var chKpop = document.createElement("input");
-  chKpop.className = "cute-checkbox";
-  chKpop.setAttribute("type", "checkbox");
-  chKpop.checked = Settings.get("hideKpop");
-  chKpop.addEventListener("change", function() {
-    Settings.set("hideKpop", chKpop.checked);
+  var reload = document.createElement("div");
+  reload.className = "checkbox";
+  var lbReload = document.createElement("label");
+  var chReload = document.createElement("input");
+  chReload.className = "cute-checkbox";
+  chReload.setAttribute("type", "checkbox");
+  chReload.checked = Settings.get("reloadFav");
+  chReload.addEventListener("change", function() {
+    Settings.set("reloadFav", chReload.checked);
   });
-  lbKpop.appendChild(chKpop);
-  var tKpop = " Скрывать треды /kpop";
-  lbKpop.appendChild(document.createTextNode(tKpop));
-  kpop.appendChild(lbKpop);
+  lbReload.appendChild(chReload);
+  var tReload = " Периодически обновлять подборку";
+  lbReload.appendChild(document.createTextNode(tReload));
+  reload.appendChild(lbReload);
 
   form.appendChild(backdrop);
   form.appendChild(noko);
-  form.appendChild(kpop);
+  form.appendChild(reload);
   settings.appendChild(form);
 
   panel.appendChild(logo);
@@ -1528,6 +1530,19 @@ function handleVisibility() {
   }
 }
 
+function handleReload() {
+  if (Settings.get("reloadFav")) {
+    setTimeout(function() {
+      if (location.pathname === "/$fav") {
+        location.reload();
+      } else {
+        handleReload();
+      }
+    }, RELOAD_TIMEOUT);
+  }
+}
+
+handleReload();
 handleApp(document.body);
 document.addEventListener("click", handleClick, true);
 document.addEventListener("mousedown", handleMouseDown);
